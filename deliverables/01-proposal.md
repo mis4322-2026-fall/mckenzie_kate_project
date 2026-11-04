@@ -33,7 +33,7 @@ Scope revision: Movie data will come from a CSV dataset stored in SQLite. FR-05 
 ## 5. Data, inputs, and outputs
 | Item | Input / Stored data / Output | Source or destination | Fictional example |
 |---|---|---|---|
-| Movie dataset | Input | Existing CSV dataset; exact source and usage terms remain Open. Download and import will happen in a later stage. | A row containing title, genres, rating, runtime, and description |
+| Movie dataset | Input | TMDB 5000 Movie Dataset on Kaggle; planned file: `tmdb_5000_movies.csv`. Download, preparation, and SQLite import are planned for later. Contents and usage terms are not yet verified. | A row containing title, genres, rating, runtime, and description |
 | Movie records | Stored data | CSV records imported into SQLite | Moonlight Picnic; Comedy; 7.8/10; 95 minutes; two neighbors organize an unexpected outdoor dinner |
 | Second movie record | Stored data | SQLite; fictional sample for demonstrating filtering | Clockwork Harbor; Mystery; 8.1/10; 120 minutes; a librarian investigates a missing town clock |
 | Existing user account | Stored data | Django's built-in authentication and SQLite | Fictional user `demo_viewer`; no password included |
@@ -43,7 +43,23 @@ Scope revision: Movie data will come from a CSV dataset stored in SQLite. FR-05 
 | Matching movies | Output | Movie Finder results page | Moonlight Picnic matches Comedy, minimum rating 7.0, and maximum runtime 100 |
 | Validation or no-match message | Output | Movie Finder form or results page | No movies match your preferences. Try changing your filters. |
 
-The dataset should contain movie titles, genres, numeric ratings, runtimes, and brief descriptions. Its source URL, rating scale, permitted use, and attribution will be recorded after a dataset is selected. A manageable subset with complete records will be used rather than trying to include every available movie. The examples above are fictional demonstration data, not verified dataset records.
+The dataset must contain movie titles, genres, numeric ratings, runtimes, and brief descriptions. A manageable subset with complete records will be used rather than trying to include every available movie. The examples above are fictional demonstration data, not verified dataset records.
+
+My planned data source is the [TMDB 5000 Movie Dataset on Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata). I found the dataset and confirmed that its page is accessible in my browser. I plan to use `tmdb_5000_movies.csv`, which is expected to include movie titles, genres, ratings, runtimes, and descriptions.
+
+The expected columns are:
+
+| Project information | Expected CSV column |
+|---|---|
+| Movie title | `title` |
+| Genres | `genres` |
+| Numeric rating | `vote_average` |
+| Runtime | `runtime` |
+| Brief description | `overview` |
+
+I plan to download the CSV later, check and prepare the data, and import the movie records into SQLite for my Django application. Preparation will include checking for missing values and duplicates, making genre values readable, and confirming the rating scale and runtime units. I will use a manageable set of complete records for the first version.
+
+The actual CSV contents, column names, missing values, and usage terms have not yet been verified. Before using the data, I will review the dataset's license and any attribution requirements. Being able to open the Kaggle page does not confirm those details. No dataset has been downloaded or imported.
 
 ## 6. Acceptance criteria
 The following examples use the two fictional movie records in section 5 and a proposed 0–10 rating scale. The final rating scale must match the selected dataset.
@@ -83,7 +99,7 @@ Favorites, watchlists, personalized recommendations, streaming links, self-regis
 | O-04 | Filters and matching behavior. | Kate McKenzie | Resolved — optional genre, minimum rating, and maximum runtime; all selected filters must match. |
 | A-02 | Blank filters impose no restriction, and numeric boundaries are inclusive. | Kate McKenzie | Confirmed. |
 | A-03 | Ratings use a 0–10 scale and runtime uses positive whole minutes. | Kate McKenzie | Runtime is measured in minutes; the proposed rating scale must be checked against the chosen dataset. |
-| O-05 | Which CSV dataset will be used, and does it contain the required fields with suitable usage terms? | Kate McKenzie | Open — dataset selection is deferred; no dataset search or download is included in this revision. |
+| O-05 | Planned dataset and remaining checks. | Kate McKenzie | Planned source — TMDB 5000 Movie Dataset on Kaggle, using `tmdb_5000_movies.csv`. The page is accessible in my browser. Open — verify the actual CSV contents, missing values, rating scale, runtime units, usage terms, and attribution before use. |
 | O-06 | Student name. | Kate McKenzie | Resolved — Kate McKenzie. |
 | A-04 | The project uses Django authentication, SQLite, and a local video demonstration. | Kate McKenzie | Included to follow the repository's course requirements. |
 | O-07 | Instructor review and approval. | Instructor | Pending. |
