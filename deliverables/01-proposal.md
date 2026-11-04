@@ -5,102 +5,92 @@
 - Student(s): Kate McKenzie
 - Date: November 3, 2026
 - Status: Draft
-- Review evidence: Pending — scope and filter choices supplied by Kate McKenzie; API feasibility and instructor review pending.
+- Review evidence: Project scope revised by Kate McKenzie; instructor review pending.
 
 ## 2. Business problem and users
-Movie Finder is for anyone struggling to find a movie to watch. Choosing a movie can take too much time when users do not know which titles fit their interests or available time. The application will let users enter their preferences and discover matching movies with a numeric review score and a brief overview. The goal is to make finding a movie easier, faster, and more enjoyable.
-
-The student supplied the idea and selected an external movie API, three filters (genre, minimum numeric review score, and maximum runtime), and a list of matching movies. The app will use filter matching rather than personalized recommendations.
+Movie Finder is for anyone who struggles to find a movie to watch. Looking through many different options can take time, especially when someone has a particular genre in mind or only a limited amount of time. The application will let users enter their preferences and see matching movies with ratings and brief descriptions. This will help them decide what to watch more quickly.
 
 ## 3. Main user workflow
 1. Sign in with an existing account.
 2. Open the protected Movie Finder page.
-3. Optionally select genre, minimum numeric review score, and maximum runtime in minutes. Blank filters impose no restriction. All selected filters must match, and score/runtime boundaries are inclusive.
-4. Submit the search. The app requests movie data from the selected external API and displays movies matching the selected preferences.
-5. Read each movie's title, score, runtime, genre, and brief overview. Browse additional result pages if needed; exact pagination depends on the chosen API.
-6. If no movies match, adjust the filters. If the movie service is unavailable, read a clear message and retry later.
-7. Sign out when finished.
+3. Choose a genre, minimum rating, and maximum runtime in minutes. Each filter is optional.
+4. Submit the search to find movies stored in SQLite. Movies must match all selected filters. A movie with a rating equal to the minimum or a runtime equal to the maximum is included.
+5. Read the matching movie titles, genres, ratings, runtimes, and brief descriptions. If nothing matches, change the preferences and search again.
+6. Sign out when finished.
 
 ## 4. Scope
 | Requirement ID | User action and observable result | Priority (Must / Later) |
 |---|---|---|
-| FR-01 | A user can sign in with a valid existing account, access the protected movie search page, and sign out. Invalid sign-in fails, and anonymous visitors cannot access the page. | Must |
-| FR-02 | A signed-in user searches with optional genre, minimum numeric review score, and maximum runtime filters and receives movies matching all selected filters from an external movie API. Blank filters impose no restriction, and numeric boundaries are inclusive. Matching results are browsable, subject to the provider's documented result limits. | Must |
-| FR-03 | Each movie recommendation displays its title, numeric review score, brief overview, genre, and runtime so the user can decide whether to watch it. | Must |
-| FR-04 | Invalid filter values produce helpful errors; an empty search result produces a clear no-match message and allows another search. | Must |
-| FR-05 | If the external movie service is unavailable or a request fails, the user receives an understandable message and can retry without losing access to the application. | Must |
-| FR-06 | Users can save favorites or a watchlist for later visits. | Later |
-| FR-07 | Users can receive recommendations based on viewing history, check streaming availability, or register their own accounts. These are separate possible extensions. | Later |
+| FR-01 | Users can sign in with a valid existing account, access the protected Movie Finder page, and sign out. Invalid sign-in does not grant access, and signed-out visitors cannot access the protected page. | Must |
+| FR-02 | Signed-in users can filter movies stored in SQLite by genre, minimum numeric rating, and maximum runtime. Blank filters impose no restriction, all selected filters must match, and rating and runtime boundaries are inclusive. | Must |
+| FR-03 | Each matching movie displays its title, genres, numeric rating with its scale, runtime in minutes, and brief description. | Must |
+| FR-04 | Users receive helpful messages for invalid filter values or no matching movies and can change their inputs to search again. | Must |
+| FR-06 | Users can save favorites or a watchlist. | Later |
+| FR-07 | Users can receive personalized recommendations, follow streaming links, or register their own accounts. | Later |
+
+Scope revision: Movie data will come from a CSV dataset stored in SQLite. FR-05 is retired because external-service error handling is no longer part of the project. Existing requirement IDs are retained and are not reassigned.
 
 ## 5. Data, inputs, and outputs
 | Item | Input / Stored data / Output | Source or destination | Fictional example |
 |---|---|---|---|
-| Existing user account | Stored data | Django's built-in authentication and SQLite | Fictional account `demo_viewer`; no password recorded |
-| Genre preference | Input | Protected search form, mapped to the API's genre identifiers | Comedy |
-| Minimum movie score | Input | Search form; provider scale must be confirmed | Proposed minimum 7.0 out of 10 |
-| Maximum runtime | Input | Search form, in whole minutes | 100 minutes |
-| Movie information | Output | External movie API to search results; provider selection Open | Moonlight Picnic; Comedy; 7.8/10; 95 minutes; two neighbors organize an unexpected outdoor dinner |
-| Second sample movie | Output | Controlled fictional API response for acceptance checks | Clockwork Harbor; Mystery; 8.1/10; 120 minutes; a librarian investigates a missing town clock |
-| Matching movie list | Output | Protected results page | Comedy, minimum 7.0, maximum 100 returns Moonlight Picnic in the controlled example |
-| No-match or validation message | Output | Search form or results page | No movies match your preferences. Try changing your filters. |
-| Service error message | Output | Results page | Movie information is temporarily unavailable. Please try again. |
-| API credential, if required | Input | Secure runtime configuration used by the server; never source code, browser output, or this document | Not applicable — no credential value is included |
+| Movie dataset | Input | Existing CSV dataset; exact source and usage terms remain Open. Download and import will happen in a later stage. | A row containing title, genres, rating, runtime, and description |
+| Movie records | Stored data | CSV records imported into SQLite | Moonlight Picnic; Comedy; 7.8/10; 95 minutes; two neighbors organize an unexpected outdoor dinner |
+| Second movie record | Stored data | SQLite; fictional sample for demonstrating filtering | Clockwork Harbor; Mystery; 8.1/10; 120 minutes; a librarian investigates a missing town clock |
+| Existing user account | Stored data | Django's built-in authentication and SQLite | Fictional user `demo_viewer`; no password included |
+| Genre preference | Input | Movie Finder form | Comedy |
+| Minimum rating | Input | Movie Finder form; numeric review score, not an age classification | 7.0 on a proposed 0–10 scale |
+| Maximum runtime | Input | Movie Finder form; positive whole minutes | 100 minutes |
+| Matching movies | Output | Movie Finder results page | Moonlight Picnic matches Comedy, minimum rating 7.0, and maximum runtime 100 |
+| Validation or no-match message | Output | Movie Finder form or results page | No movies match your preferences. Try changing your filters. |
 
-Fictional titles and scores above are demonstration fixtures, not claims about actual API records. No local movie catalog or search-history storage is required for the first version. Persistent movie caching is outside scope unless provider rules make it necessary.
+The dataset should contain movie titles, genres, numeric ratings, runtimes, and brief descriptions. Its source URL, rating scale, permitted use, and attribution will be recorded after a dataset is selected. A manageable subset with complete records will be used rather than trying to include every available movie. The examples above are fictional demonstration data, not verified dataset records.
 
 ## 6. Acceptance criteria
-Optional filters, combined matching, and inclusive boundaries are confirmed by the student. The proposed 0–10 score scale remains subject to provider selection. Controlled fictional API responses allow repeatable checks; live API access must also be verified during development.
+The following examples use the two fictional movie records in section 5 and a proposed 0–10 rating scale. The final rating scale must match the selected dataset.
 
 | Criterion ID | Requirement ID | Given / When | Expected result |
 |---|---|---|---|
-| AC-01 | FR-01 | Given an existing fictional account, when the user signs in with valid credentials | The user reaches the protected Movie Finder page. Credentials are supplied securely during demonstration and are not recorded here. |
-| AC-02 | FR-01 | Given the sign-in page, when a user submits invalid credentials | Sign-in fails with a helpful error and grants no access to the protected page. |
-| AC-03 | FR-01 | Given a signed-out visitor, when the visitor directly requests the protected page | The server redirects the visitor to sign-in or denies access. |
-| AC-04 | FR-01 | Given a signed-in user, when the user signs out through a CSRF-protected POST action and requests the protected page again | The session no longer grants access; sign-in is required again. |
-| AC-05 | FR-02 | Given the two fictional API records in section 5, when the user searches Comedy, minimum score 7.0, and maximum runtime 100 minutes | Moonlight Picnic appears and Clockwork Harbor does not. All selected filters must match. |
-| AC-06 | FR-02 | Given Moonlight Picnic has score 7.8 and runtime 95, when the user searches Comedy, minimum score 7.8, and maximum runtime 95 | Moonlight Picnic appears because filter boundaries are inclusive. |
-| AC-07 | FR-03 | Given a matching movie with complete API data, when the recommendation is displayed | Its title, numeric score with scale, genre, runtime in minutes, and brief overview are readable. |
-| AC-08 | FR-04 | Given the two sample records, when the user searches Comedy with minimum score 9.0 | No sample movies appear, and a no-match message invites the user to change the filters. |
-| AC-09 | FR-04 | Given the proposed 0–10 scale and positive whole-minute runtime, when a user submits a score of 11 or runtime -5 | The form identifies the invalid value and permits correction instead of submitting a valid movie search. |
-| AC-10 | FR-05 | Given an API timeout or failure response, when a signed-in user searches | The page displays a helpful service-unavailable message, exposes no credentials or technical error details, and lets the user retry. |
-| AC-11 | FR-02 | Given a controlled API response with more matching results than fit on one page, when the user requests the next page | Additional matches are shown while preserving the filters. Provider result limits must be stated once selected. |
-| AC-12 | FR-02, FR-03 | Given configured access to the selected API, when a user performs a representative live search | Real movie data is retrieved and displayed with the required fields, and returned movies meet the selected filters. This check has not been run. |
-| AC-13 | FR-02 | Given the two fictional API records, when the user selects only Comedy and leaves score and runtime blank | Moonlight Picnic appears; blank filters impose no score or runtime restriction. |
-| AC-14 | FR-02 | Given the two fictional API records, when the user leaves all filters blank | Both records are browsable, subject to pagination and provider result limits. |
+| AC-01 | FR-01 | Given an existing demonstration account, when the user signs in with valid credentials | The protected Movie Finder page opens. No passwords are recorded in the proposal. |
+| AC-02 | FR-01 | Given the sign-in page, when the user submits invalid credentials | A helpful error appears and access is not granted. |
+| AC-03 | FR-01 | Given a signed-out visitor, when the visitor requests the Movie Finder page directly | The server redirects the visitor to sign-in or denies access. |
+| AC-04 | FR-01 | Given a signed-in user, when the user signs out through a CSRF-protected POST action and requests the protected page again | The user must sign in again to access the page. |
+| AC-05 | FR-02 | Given the two sample movies in SQLite, when the user selects Comedy, minimum rating 7.0, and maximum runtime 100 | Moonlight Picnic appears and Clockwork Harbor does not. |
+| AC-06 | FR-02 | Given Moonlight Picnic has rating 7.8 and runtime 95, when the user selects Comedy, minimum rating 7.8, and maximum runtime 95 | Moonlight Picnic appears because both boundaries are inclusive. |
+| AC-07 | FR-03 | Given a matching movie, when its result is displayed | Its title, genres, rating and scale, runtime in minutes, and brief description are readable. |
+| AC-08 | FR-04 | Given only the two sample movies, when the user selects Comedy and minimum rating 9.0 | No movies appear and a clear message invites the user to change the filters. |
+| AC-09 | FR-04 | Given the proposed 0–10 rating scale, when the user submits a rating outside that scale, a negative runtime, or text in a numeric field | A helpful validation error identifies the invalid input and allows correction. |
+| AC-13 | FR-02 | Given the two sample movies, when the user selects only Comedy and leaves rating and runtime blank | Moonlight Picnic appears; blank filters do not restrict rating or runtime. |
+| AC-14 | FR-02 | Given the two sample movies, when the user leaves all filters blank | Both movies appear. |
+
+AC-10, AC-11, and AC-12 are retired with the previous external-service and pagination scope. The remaining acceptance-criterion IDs are preserved.
 
 ## 7. Feasibility and boundaries
-The proposed application uses Django with server-rendered templates, Django forms for preference validation, Django's built-in session authentication, and SQLite for user accounts. Django's ORM handles local account data; an external API supplies movie information. A local Movie model is not needed unless later design establishes a specific storage need.
+This project will use Django, SQLite, and basic Python. Django templates will display the pages, forms will validate search inputs, and Django's ORM will filter the movie records stored in SQLite. Django's built-in session authentication will handle sign-in, sign-out, and protection of the Movie Finder page. A small Movie data model and Django's existing user model should be enough for the first version.
 
-The first version uses straightforward filtering. It does not require machine learning, viewing-history analysis, a background job system, a JavaScript framework, or multiple user roles. Self-registration, password reset, watchlists, streaming availability, and deployment are outside the initial scope. Final course delivery is a video demonstration of the local application.
+A CSV dataset will be downloaded and imported during development after its suitability and permitted use have been checked. Once the movie records are stored locally, searching will not require an external connection. Using a manageable subset will keep data preparation and displaying results simple. The first version will use a straightforward list of matches without complicated pagination or personalized ranking.
 
-The external API is a student-selected requirement, but its provider, availability, allowed use, credentials, network access, score scale, runtime filtering, pagination, attribution requirements, and missing-field behavior are not yet verified. Selecting a provider with searchable runtime data is particularly important: fetching details for every candidate movie could make searches slow or exceed rate limits. The design stage must establish a practical query strategy and disclose result limits without claiming an exhaustive search that the provider cannot support.
+The main risks are missing descriptions or runtimes, inconsistent genre labels, duplicate records, and ratings that use an unexpected scale. Before importing, the selected records will need to be checked for complete required fields, consistent genres, numeric ratings, and runtimes in minutes. The dataset's source and attribution requirements must also be recorded. Recommendations will be limited to the movies included in the local database, so they will not cover every movie or automatically update with new releases.
 
-API calls should run on the server, with required credentials supplied through secure configuration. Timeouts and service errors must be handled. Provider-required attribution must appear where required. Missing runtime or score must not cause a movie to be falsely presented as satisfying that filter; precise display rules remain Open.
-
-Authentication, SQLite, and local demonstration follow the repository's course conventions. No application has been built, API selected, credentials requested, or behavior tested during this proposal work. API feasibility is a planning dependency, not an established capability.
+Favorites, watchlists, personalized recommendations, streaming links, self-registration, password reset, and hosting are outside the first version. Final course delivery will be a video demonstration of the local application. No dataset has been downloaded and no application has been built or tested as part of this revision.
 
 ## 8. Assumptions and open questions
 | Item | Assumption / Open question | Owner | Resolution |
 |---|---|---|---|
-| A-01 | Intended users are anyone struggling to find a movie. | Student | Confirmed in refinement response. |
-| O-01 | Primary audience. | Student | Resolved — anyone struggling to choose a movie. |
-| O-02 | Local catalog or external movie API? | Student | Resolved — external movie API selected. |
-| O-03 | Meaning of rating. | Student | Resolved — minimum numeric review score selected through the confirmed workflow. |
-| O-04 | Filters and recommendation behavior. | Student | Resolved — genre, minimum score, maximum runtime; show matching movies. No personalized ranking requested. |
-| A-02 | Users may leave filters blank, and selected filters combine; boundaries are inclusive. | Student | Confirmed by Kate McKenzie in the follow-up response. |
-| A-03 | Scores use a 0–10 scale and runtime uses positive whole minutes. | Assistant recommendation | Open — score scale depends on provider; runtime validation proposed. |
-| O-05 | Select an API and verify access, runtime filtering, rate limits, result limits, required fields, and terms. | Student and assistant | Open — student explicitly deferred provider selection to the design stage; no API availability promised. |
-| O-06 | Student name for the proposal. | Student | Resolved — Kate McKenzie, supplied by the student. |
-| A-04 | Sign-in, POST sign-out, protected search, SQLite, and local video delivery follow course conventions. | Repository course skill | Required by the skill; instructor review pending. |
-| O-07 | Instructor review and approval. | Instructor | Pending — no review evidence supplied. |
-| O-09 | Does “existing movie dataset” in the student explanation mean API data or a local dataset? | Student | Open for design — retain the earlier external API choice until a change is confirmed. |
-| O-08 | How should missing score, runtime, or overview be displayed? | Student and assistant | Open — propose labeling unavailable fields and excluding records whose missing fields prevent confirming an active filter. |
+| A-01 | Movie Finder is for anyone struggling to choose a movie. | Kate McKenzie | Confirmed. |
+| O-01 | Primary audience. | Kate McKenzie | Resolved — anyone struggling to find a movie. |
+| O-02 | Movie data source. | Kate McKenzie | Resolved — use an existing CSV dataset and store its records in SQLite. |
+| O-03 | Meaning of rating. | Kate McKenzie | Resolved — numeric review score rather than age classification. |
+| O-04 | Filters and matching behavior. | Kate McKenzie | Resolved — optional genre, minimum rating, and maximum runtime; all selected filters must match. |
+| A-02 | Blank filters impose no restriction, and numeric boundaries are inclusive. | Kate McKenzie | Confirmed. |
+| A-03 | Ratings use a 0–10 scale and runtime uses positive whole minutes. | Kate McKenzie | Runtime is measured in minutes; the proposed rating scale must be checked against the chosen dataset. |
+| O-05 | Which CSV dataset will be used, and does it contain the required fields with suitable usage terms? | Kate McKenzie | Open — dataset selection is deferred; no dataset search or download is included in this revision. |
+| O-06 | Student name. | Kate McKenzie | Resolved — Kate McKenzie. |
+| A-04 | The project uses Django authentication, SQLite, and a local video demonstration. | Kate McKenzie | Included to follow the repository's course requirements. |
+| O-07 | Instructor review and approval. | Instructor | Pending. |
+| O-08 | Handling incomplete movie records. | Kate McKenzie | Proposed approach — use a subset with complete required fields; confirm during data preparation. |
+| O-09 | Local dataset or externally requested movie data? | Kate McKenzie | Resolved — local CSV dataset, imported into SQLite. |
 
 ## 9. Student explanation
-Supplied by Kate McKenzie:
+This application will be useful because it helps people find movies to watch without spending a lot of time searching through different options. Users can enter their preferences and receive movie suggestions with ratings and brief descriptions to help them decide.
 
-> This application will be useful because it helps people find movies to watch without spending a lot of time searching through different options. Users can enter their preferences and receive movie suggestions with ratings and brief descriptions to help them decide.
->
-> This project is manageable because I can use an existing movie dataset and basic Python filtering to find matching movies. Django and SQLite will allow me to build a simple web application without needing complicated APIs or advanced features.
-
-Planning note: Kate's explanation mentions an existing dataset and avoiding complicated APIs, while her earlier scope choice selected an external movie API and her follow-up deferred provider selection to design. The proposal retains the external API choice. During design, clarify whether “dataset” means data returned by that API or a change to a local dataset; document any scope change before implementation.
+This project is manageable because I can use an existing movie dataset and basic Python filtering to find matching movies. Django and SQLite will allow me to build a simple web application without needing complicated APIs or advanced features.
