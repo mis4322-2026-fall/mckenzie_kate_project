@@ -8,31 +8,43 @@
 - Review evidence: Project scope revised by Kate McKenzie; instructor review pending.
 
 ## 2. Business problem and users
-Movie Finder is for anyone who struggles to find a movie to watch. Looking through many different options can take time, especially when someone has a particular genre in mind or only a limited amount of time. The application will offer two ways to search: enter movie preferences or enter the title of a movie they enjoyed to find other movies with similar genres. Both methods will show matching movies with ratings and brief descriptions. This will help them decide what to watch more quickly.
+Movie Finder is for anyone who struggles to decide what movie to watch. After creating an account or signing in, users will reach a home page with three choices: search for a movie they enjoyed, browse by genre and preferences, or choose **Surprise Me!** for a random movie. Each method will display movie titles, genres, numeric ratings, runtimes, and storylines from the local SQLite database.
+
+The main source will remain the TMDB 5000 Movie Dataset (`tmdb_5000_movies.csv`), imported later into SQLite for Django. Genre-based recommendations are required; adding storyline keyword comparison is an optional design decision. Posters, trailers, and accurate United States streaming information are optional enhancements. A TMDB API integration is being considered for those enhancements but has not been approved or tested. The core application must work without it.
+
+The optional trailer idea is a muted preview after hovering over a poster for 7 continuous seconds. Leaving the poster would cancel or stop playback and restore the poster. If that is not practical, a “Watch Trailer” button is the fallback. Movie information must remain usable without hover on mobile devices and with a keyboard. No poster, trailer, streaming, or TMDB identifier fields are assumed to exist until verified.
+
+Revision in progress: The overview, workflow, requirement table, and acceptance criteria now include the updated scope. Data details, feasibility, and the remaining design sections will be revised in later reviewed steps. Existing IDs remain unchanged; retired IDs will not be reused.
 
 ## 3. Main user workflow
-1. Create an account with a username and password, or sign in with an existing account. After creating an account, sign in to continue.
-2. Open the protected Movie Finder home page and choose **Find by preferences** or **Find similar movies**.
-3. For preferences, choose a genre, minimum rating, and maximum runtime in minutes. Each filter is optional. All selected filters must match, and rating and runtime boundaries are inclusive.
-4. For similar movies, enter a movie title from the local catalog. Title matching ignores capitalization and extra spaces at the beginning or end. If more than one movie has that title, choose the intended record from the matches before continuing.
-5. The application finds other movies sharing at least one genre with the selected movie and excludes that movie itself. It does not use machine learning, viewing history, or an external API.
-6. Read the matching movie titles, genres, ratings, runtimes, and descriptions. If the title is not found or no recommendations match, read the message and try another search. Return to the home page to switch methods.
-7. Sign out when finished.
+1. Create an account or sign in. Successful sign-in opens the protected Movie Finder home page.
+2. Choose one of three home-page options: **Search for a Movie**, **Discover by Genre and Preferences**, or the **Surprise Me!** button.
+3. For preference search, choose optional genre, minimum rating, and maximum runtime filters. All selected filters must match, and numeric boundaries are inclusive.
+4. For title search, enter a known movie title. Matching ignores capitalization and surrounding spaces. If titles repeat, choose the intended record. See other movies sharing at least one genre, excluding the original movie and duplicate results. Storyline-based ranking remains optional and needs approval.
+5. For **Surprise Me!**, click the button to receive one randomly selected eligible movie from SQLite. Click **Surprise Me Again** to request another random selection. If no eligible movies exist, see a helpful message. Eligibility and immediate-repeat handling will be finalized in the business-rules design step.
+6. All three methods show movie titles, genres, ratings, runtimes, and descriptions. If a title is unknown or no movies match, change the search and try again. Return home to choose another method.
+7. If optional enhancements are approved later, verified posters, trailers, and US streaming information may also appear. Missing enhancements must not prevent discovery. Streaming information must never be guessed.
+8. Sign out securely. The home page, discovery pages, and results require sign-in again.
 
 ## 4. Scope
 | Requirement ID | User action and observable result | Priority (Must / Later) |
 |---|---|---|
-| FR-01 | Users can sign in with a valid existing account, access the protected Movie Finder home page and both search methods, and sign out. Invalid sign-in does not grant access, and signed-out visitors cannot access these pages or their results. | Must |
+| FR-01 | Users can sign in with a valid existing account, access the protected Movie Finder home page and all three discovery methods, and sign out. Invalid sign-in does not grant access, and signed-out visitors cannot access these pages or their results. | Must |
 | FR-02 | Signed-in users can filter movies stored in SQLite by genre, minimum numeric rating, and maximum runtime. Blank filters impose no restriction, all selected filters must match, and rating and runtime boundaries are inclusive. | Must |
-| FR-03 | Both search methods display each matching movie's title, genres, numeric rating with its scale, runtime in minutes, and brief description. | Must |
-| FR-04 | Users receive helpful messages for invalid filter values, a blank or unknown movie title, or no matching movies and can change their inputs to search again. | Must |
+| FR-03 | All three discovery methods display each matching movie's title, genres, numeric rating with its scale, runtime in minutes, and brief description. | Must |
+| FR-04 | Users receive helpful messages for invalid filter values, a blank or unknown movie title, no matching movies, or no eligible random movies and can change their inputs to search again. | Must |
 | FR-06 | Users can save favorites or a watchlist. | Later |
-| FR-07 | Users can receive recommendations based on viewing history, follow streaming links, or search for TV shows. | Later |
+| FR-07 | Users can receive recommendations based on viewing history, or search for TV shows. | Later |
 | FR-08 | New users can create an account with a unique username and a password confirmed twice. Invalid registration shows helpful errors; successful registration allows the user to sign in. | Must |
-| FR-09 | After signing in, users see a protected home page with choices for preference search and similar-movie search and can return to it to switch methods. | Must |
+| FR-09 | After signing in, users see a protected home page with **Search for a Movie**, **Discover by Genre and Preferences**, and a **Surprise Me!** button and can return to it to switch methods. | Must |
 | FR-10 | Signed-in users can enter a movie title, select the intended record if the title has multiple matches, and receive other movies sharing at least one of its genres. Each matching movie appears once, and the original record is excluded. | Must |
+| FR-11 | Signed-in users can click **Surprise Me!** on the home page to receive one random eligible movie from SQLite, click **Surprise Me Again** to request another selection, and receive a helpful message if none are eligible. | Must |
+| FR-12 | If feasible and approved, users see a verified movie poster when available; missing posters do not prevent reading movie information or using discovery. | Later |
+| FR-13 | If feasible and approved, hovering continuously over a poster for 7 seconds starts a muted trailer preview; leaving cancels or stops it and restores the poster. A Watch Trailer control provides non-hover access or the simpler fallback when automatic previews are impractical. | Later |
+| FR-14 | If feasible and approved, users see reliable US streaming-provider information. Otherwise, results say “Streaming availability unavailable.” No provider is guessed. | Later |
+| FR-15 | If approved after evaluation, title-based recommendations also consider description keyword similarity, with the ranking method documented and tested before implementation. | Later |
 
-Scope revision: Movie data will come from a CSV dataset stored in SQLite. FR-05 is retired because external-service error handling is no longer part of the project. Existing requirement IDs are retained and are not reassigned. Account creation is now Must under FR-08 rather than part of the Later features in FR-07. FR-09 and FR-10 cover the home page and genre-based similar-movie search.
+Scope revision: Movie data will come from a CSV dataset stored in SQLite. FR-05 is retired because external-service error handling is no longer part of the project. Existing requirement IDs are retained and are not reassigned. Account creation is now Must under FR-08 rather than part of the Later features in FR-07. FR-09 now covers three home-page options; FR-10 retains genre-based title recommendations. FR-11 adds the required random picker. FR-12–FR-15 record optional enhancements as Later, not initial-build requirements. Streaming information has moved from the broad future list in FR-07 to the specific optional FR-14. The core searches do not require an API; optional TMDB enhancement integration remains unapproved.
 
 ## 5. Data, inputs, and outputs
 | Item | Input / Stored data / Output | Source or destination | Fictional example |
@@ -73,28 +85,37 @@ The following examples use the fictional movie records in section 5. AC-05, AC-1
 
 | Criterion ID | Requirement ID | Given / When | Expected result |
 |---|---|---|---|
-| AC-01 | FR-01 | Given an existing demonstration account, when the user signs in with valid credentials | The protected Movie Finder home page opens with both search choices. No passwords are recorded in the proposal. |
+| AC-01 | FR-01 | Given an existing demonstration account, when the user signs in with valid credentials | The protected Movie Finder home page opens with all three discovery choices. No passwords are recorded in the proposal. |
 | AC-02 | FR-01 | Given the sign-in page, when the user submits invalid credentials | A helpful error appears and access is not granted. |
-| AC-03 | FR-01 | Given a signed-out visitor, when the visitor directly requests the home page, either search page, or either results page | The server redirects the visitor to sign-in or denies access. |
+| AC-03 | FR-01 | Given a signed-out visitor, when the visitor directly requests the home page, either search page, any discovery results page, or the Surprise Me action directly | The server redirects the visitor to sign-in or denies access. |
 | AC-04 | FR-01 | Given a signed-in user, when the user signs out through a CSRF-protected POST action and requests the protected page again | The user must sign in again to access the page. |
 | AC-05 | FR-02 | Given the two sample movies in SQLite, when the user selects Comedy, minimum rating 7.0, and maximum runtime 100 | Moonlight Picnic appears and Clockwork Harbor does not. |
 | AC-06 | FR-02 | Given Moonlight Picnic has rating 7.8 and runtime 95, when the user selects Comedy, minimum rating 7.8, and maximum runtime 95 | Moonlight Picnic appears because both boundaries are inclusive. |
-| AC-07 | FR-03 | Given a matching movie, when its result is displayed by either search method | Its title, genres, rating and scale, runtime in minutes, and brief description are readable. |
+| AC-07 | FR-03 | Given a matching movie, when its result is displayed by each of the three discovery methods | Its title, genres, rating and scale, runtime in minutes, and brief description are readable. |
 | AC-08 | FR-04 | Given only the two sample movies, when the user selects Comedy and minimum rating 9.0 | No movies appear and a clear message invites the user to change the filters. |
 | AC-09 | FR-04 | Given the proposed 0–10 rating scale, when the user submits a rating outside that scale, a negative runtime, or text in a numeric field | A helpful validation error identifies the invalid input and allows correction. |
 | AC-13 | FR-02 | Given the two sample movies, when the user selects only Comedy and leaves rating and runtime blank | Moonlight Picnic appears; blank filters do not restrict rating or runtime. |
 | AC-14 | FR-02 | Given the two sample movies, when the user leaves all filters blank | Both movies appear. |
 | AC-15 | FR-08 | Given an unused fictional username and a valid password entered identically twice, when a new user submits registration | An account is created, and the user can sign in and reach the home page. No password is included in the proposal. |
 | AC-16 | FR-08 | When registration uses an existing username, mismatched passwords, or a password rejected by Django's configured validators | A helpful error appears and no new account is created. |
-| AC-17 | FR-09 | Given a signed-in user on the home page, when the user selects either search option | The corresponding form opens, and the user can return home to choose the other method. |
+| AC-17 | FR-09 | Given a signed-in user on the home page, when the user selects each of the three discovery choices | The selected search form or Surprise Me result opens, and the user can return home to choose another method. |
 | AC-18 | FR-10 | Given all three sample movies, when the user searches for Moonlight Picnic | Garden of Laughs appears because it shares Comedy; Clockwork Harbor and Moonlight Picnic do not appear. |
 | AC-19 | FR-10 | Given two different records share multiple genres, when one is selected as the starting movie | The other record appears only once and the starting record is excluded. |
 | AC-20 | FR-04, FR-10 | When a user submits a blank title or a title absent from SQLite | A helpful message requests a title or explains that the movie was not found, and the user can try again. |
 | AC-21 | FR-04, FR-10 | Given the three sample movies, when the user searches for Clockwork Harbor | A clear message explains that no other movies share its genres. |
 | AC-22 | FR-10 | Given Moonlight Picnic is stored, when the user enters `  moonlight picnic  ` | The same movie is found regardless of capitalization and surrounding spaces. |
 | AC-23 | FR-10 | Given two movie records have the same title, when that title is submitted | The user chooses between the matching records before recommendations are generated; only the selected record is excluded. |
+| AC-24 | FR-11, FR-03 | Given eligible fictional movies in SQLite, when a signed-in user clicks Surprise Me! | Exactly one eligible movie is displayed with title, genres, rating, runtime, and description. No external movie service is needed. |
+| AC-25 | FR-11 | Given a random-movie result, when the user clicks Surprise Me Again | A new random selection is requested and exactly one eligible result is displayed. Whether the same movie may repeat immediately remains a business-rule decision. |
+| AC-26 | FR-11, FR-04 | Given no eligible movies in SQLite, when the user clicks Surprise Me! | A helpful no-movies-available message appears and the user can return home without an application error. |
+| AC-27 | FR-01, FR-11 | Given a signed-out visitor, when the visitor requests a random selection directly | The server redirects to sign-in or denies access; no protected movie result is exposed. |
+| AC-28 | FR-12 | If the poster enhancement is approved, given a verified poster and a movie without one, when their results are displayed | The verified poster appears for the first movie; the other result remains readable and usable without a broken-image dependency. |
+| AC-29 | FR-13 | If hover previews are approved, given a playable verified trailer, when the cursor remains on the poster for 7 continuous seconds and then leaves | Playback starts muted after the delay; leaving stops playback and restores the poster. Leaving before 7 seconds cancels the preview. |
+| AC-30 | FR-13 | If trailers are approved, when a keyboard or mobile user selects Watch Trailer, or autoplay is unsupported | An available verified trailer can be opened or played through the control without hover. Missing or blocked trailers leave movie discovery usable. |
+| AC-31 | FR-14 | If streaming enhancement is approved, given reliable US provider data and a separate result with no reliable availability data | The first shows supported US provider information; the second says “Streaming availability unavailable.” No availability is invented. |
+| AC-32 | FR-15 | If storyline comparison is approved, given a documented ranking rule and fictional descriptions with known keyword overlap | Recommendation ordering matches the approved expected order and still excludes the original movie and duplicate results. Exact samples and ordering must be specified before this enhancement is built. |
 
-AC-10, AC-11, and AC-12 are retired with the previous external-service and pagination scope. The remaining acceptance-criterion IDs are preserved.
+AC-10, AC-11, and AC-12 are retired with the previous external-service and pagination scope. The remaining acceptance-criterion IDs are preserved. AC-28–AC-32 are conditional checks for Later enhancements, not required for the core application. AC-32 is a planning placeholder until a storyline ranking rule and concrete examples are approved. Similar-movie ordering by shared-genre count and rating remains a decision to confirm in the business-rules step; storyline comparison will not silently change it.
 
 ## 7. Feasibility and boundaries
 This project will use Django, SQLite, and basic Python. Django templates will display the pages, forms will validate search inputs, and Django's ORM will filter the movie records stored in SQLite. Django's built-in user creation form and password validation will support registration. Its session authentication will handle sign-in, CSRF-protected POST sign-out, and server-side protection of the home page, both search methods, and their results. Passwords will be handled by Django rather than custom password storage. A small Movie data model and Django's existing user model should be enough for the first version.
