@@ -2,152 +2,164 @@
 
 ## 1. Project identity
 - Project name: Movie Finder
-- Student(s): Kate McKenzie
-- Date: November 3, 2026
-- Status: Draft
-- Review evidence: Project scope revised by Kate McKenzie; instructor review pending.
+- Student: Kate McKenzie
+- Original proposal date: November 3, 2026
+- Scope revision date: November 11, 2026
+- Status: Draft — planning only; no features are claimed as built or tested.
+- Review evidence: Kate supplied the revised scope. Instructor feedback has not been supplied; instructor review remains pending.
 
 ## 2. Business problem and users
-Movie Finder is for anyone who struggles to decide what movie to watch. After creating an account or signing in, users will reach a home page with three choices: search for a movie they enjoyed, browse by genre and preferences, or choose **Surprise Me!** for a random movie. Each method will display movie titles, genres, numeric ratings, runtimes, and storylines from the local SQLite database.
+Movie Finder is a full-stack Django web application for people who have trouble deciding what movie to watch. Searching across many options can take time. The application will bring popular movies, title search, genre browsing, related recommendations, and random discovery into one place. Users can read a movie's information and save interesting titles to a private watchlist for later.
 
-The main source will remain the TMDB 5000 Movie Dataset (`tmdb_5000_movies.csv`), imported later into SQLite for Django. Genre-based recommendations are required; adding storyline keyword comparison is an optional design decision. Posters, trailers, and accurate United States streaming information are optional enhancements. A TMDB API integration is being considered for those enhancements but has not been approved or tested. The core application must work without it.
+The backend will use Python and Django. Django templates, HTML, and CSS will provide a simple interface. Django's built-in authentication will manage accounts, while SQLite will store accounts and personal watchlists. TMDb will be the planned source for movie information, posters, genres, numeric ratings, popularity, and movie-based recommendations. Recommendations will relate to a selected movie, not a user's viewing history.
 
-The optional trailer idea is a muted preview after hovering over a poster for 7 continuous seconds. Leaving the poster would cancel or stop playback and restore the poster. If that is not practical, a “Watch Trailer” button is the fallback. Movie information must remain usable without hover on mobile devices and with a keyboard. No poster, trailer, streaming, or TMDB identifier fields are assumed to exist until verified.
+### November 11 scope changes
+The original purpose remains helping users choose a movie. The approach has changed to keep discovery in one external data source and local storage focused on accounts and saved movies.
 
-Revision in progress: The overview, workflow, requirement table, and acceptance criteria now include the updated scope. Data details, feasibility, and the remaining design sections will be revised in later reviewed steps. Existing IDs remain unchanged; retired IDs will not be reused.
+| Area | Earlier plan | Revised plan |
+|---|---|---|
+| Movie source | Download TMDB 5000 CSV and filter imported SQLite movie records | Request movie information from TMDb; no CSV import or local discovery catalog |
+| Genre browsing | One genre with minimum rating and maximum runtime; release-year filtering later appeared in the design | One or multiple genres; every selected genre must match. No rating, runtime, or release-year filter |
+| Title search and recommendations | Local title matching and shared-genre recommendations; possible storyline keyword comparison | TMDb title search and an available movie-based recommendations feature; no custom similarity algorithm |
+| Dashboard | Links to discovery methods | Popular movies, title search, genre browsing, Surprise Me, and watchlist navigation |
+| Accounts and watchlists | Authentication already required; watchlist previously Later in the proposal and planned in the design | Registration and private persistent watchlists are Must requirements |
+| Random discovery | Random movie from SQLite | Random selection from a bounded set of movies returned by TMDb, not the entire TMDb catalog |
+| Details and media | Runtime required; optional trailers and streaming providers | Separate details page with poster, title, genres, rating, and description; runtime no longer required; trailers and streaming removed |
+
+Title search, registration, and Surprise Me were already added in earlier revisions and are retained. The ledger in section 4 records ID changes. This revision supersedes earlier design ideas about CSV import, local recommendation ranking, trailer hover, streaming availability, and release-year filtering.
 
 ## 3. Main user workflow
-1. Create an account or sign in. Successful sign-in opens the protected Movie Finder home page.
-2. Choose one of three home-page options: **Search for a Movie**, **Discover by Genre and Preferences**, or the **Surprise Me!** button.
-3. For preference search, choose optional genre, minimum rating, and maximum runtime filters. All selected filters must match, and numeric boundaries are inclusive.
-4. For title search, enter a known movie title. Matching ignores capitalization and surrounding spaces. If titles repeat, choose the intended record. See other movies sharing at least one genre, excluding the original movie and duplicate results. Storyline-based ranking remains optional and needs approval.
-5. For **Surprise Me!**, click the button to receive one randomly selected eligible movie from SQLite. Click **Surprise Me Again** to request another random selection. If no eligible movies exist, see a helpful message. Eligibility and immediate-repeat handling will be finalized in the business-rules design step.
-6. All three methods show movie titles, genres, ratings, runtimes, and descriptions. If a title is unknown or no movies match, change the search and try again. Return home to choose another method.
-7. If optional enhancements are approved later, verified posters, trailers, and US streaming information may also appear. Missing enhancements must not prevent discovery. Streaming information must never be guessed.
-8. Sign out securely. The home page, discovery pages, and results require sign-in again.
+1. Open the public welcome page. New users can create an account; returning users can log in.
+2. Register with a unique username and a confirmed password, then sign in. Invalid registration or login displays helpful errors.
+3. Successful login opens the protected dashboard, showing popular movies, a search bar, genre browsing, a Surprise Me button, and watchlist navigation.
+4. Enter a title to receive matching movies from TMDb, or choose one or more genres to browse movies matching all selected genres.
+5. Open a movie's details page to view its poster, title, genres, numeric rating, and description. Choose related recommendations supplied by TMDb when available.
+6. Alternatively, click Surprise Me to receive one random movie from the available candidate set. Click Try Again for another selection request.
+7. Save a movie to the personal watchlist, view saved titles, or remove a saved movie. Only the signed-in user's entries are visible or changeable through application pages.
+8. If information cannot be retrieved or nothing matches, read the explanatory message and try again or return to the dashboard. A missing poster or description must not break the page.
+9. Log out through a secure POST action. Protected pages require login again, while the welcome page remains public.
 
 ## 4. Scope
 | Requirement ID | User action and observable result | Priority (Must / Later) |
 |---|---|---|
-| FR-01 | Users can sign in with a valid existing account, access the protected Movie Finder home page and all three discovery methods, and sign out. Invalid sign-in does not grant access, and signed-out visitors cannot access these pages or their results. | Must |
-| FR-02 | Signed-in users can filter movies stored in SQLite by genre, minimum numeric rating, and maximum runtime. Blank filters impose no restriction, all selected filters must match, and rating and runtime boundaries are inclusive. | Must |
-| FR-03 | All three discovery methods display each matching movie's title, genres, numeric rating with its scale, runtime in minutes, and brief description. | Must |
-| FR-04 | Users receive helpful messages for invalid filter values, a blank or unknown movie title, no matching movies, or no eligible random movies and can change their inputs to search again. | Must |
-| FR-06 | Users can save favorites or a watchlist. | Later |
-| FR-07 | Users can receive recommendations based on viewing history, or search for TV shows. | Later |
-| FR-08 | New users can create an account with a unique username and a password confirmed twice. Invalid registration shows helpful errors; successful registration allows the user to sign in. | Must |
-| FR-09 | After signing in, users see a protected home page with **Search for a Movie**, **Discover by Genre and Preferences**, and a **Surprise Me!** button and can return to it to switch methods. | Must |
-| FR-10 | Signed-in users can enter a movie title, select the intended record if the title has multiple matches, and receive other movies sharing at least one of its genres. Each matching movie appears once, and the original record is excluded. | Must |
-| FR-11 | Signed-in users can click **Surprise Me!** on the home page to receive one random eligible movie from SQLite, click **Surprise Me Again** to request another selection, and receive a helpful message if none are eligible. | Must |
-| FR-12 | If feasible and approved, users see a verified movie poster when available; missing posters do not prevent reading movie information or using discovery. | Later |
-| FR-13 | If feasible and approved, hovering continuously over a poster for 7 seconds starts a muted trailer preview; leaving cancels or stops it and restores the poster. A Watch Trailer control provides non-hover access or the simpler fallback when automatic previews are impractical. | Later |
-| FR-14 | If feasible and approved, users see reliable US streaming-provider information. Otherwise, results say “Streaming availability unavailable.” No provider is guessed. | Later |
-| FR-15 | If approved after evaluation, title-based recommendations also consider description keyword similarity, with the ranking method documented and tested before implementation. | Later |
+| FR-01 | Returning users can sign in and log out. The dashboard, searches, recommendations, random discovery, details, and watchlist require server-side authentication; invalid login grants no access. | Must |
+| FR-03 | Clicking a movie opens a separate details page showing its title, genres, numeric rating with its scale, description, and poster when supplied. Missing fields have honest unavailable messages or a poster placeholder. | Must |
+| FR-04 | Users receive understandable messages for invalid inputs, empty searches/results, missing movies, unavailable information, and TMDb failures, with a way to retry or navigate back. | Must |
+| FR-06 | Signed-in users can save movies, view their private watchlist, and remove their own saved entries. Saved entries persist in SQLite, and duplicate saves do not create duplicate entries. | Must |
+| FR-07 | TV-show discovery and additional interface polish may be considered after the required movie application is complete. | Later |
+| FR-08 | New users can register with a unique username and a password entered identically twice. Invalid registration shows helpful errors; a successful account can sign in through Django authentication. | Must |
+| FR-09 | Successful login opens a dashboard displaying TMDb popular movies, a title-search bar, genre browsing, Surprise Me, and watchlist navigation. Users can return to the dashboard from application pages. | Must |
+| FR-10 | Users can search TMDb by title, choose the intended movie from matches, and request related movies through an available TMDb movie-based recommendation feature. Recommendations exclude the selected movie and duplicate IDs. | Must |
+| FR-11 | Users can click Surprise Me to receive one randomly selected TMDb candidate movie and click Try Again to request another selection. Empty candidate sets and failures display a helpful message. | Must |
+| FR-12 | Dashboard/results/detail pages display TMDb posters when supplied, with meaningful alternative text and a local placeholder when an image is missing or cannot load. | Must |
+| FR-16 | Users can select one or multiple valid TMDb genres. Browse results must include every selected genre; empty selection prompts the user to select a genre. | Must |
+| FR-17 | Visitors can open a public welcome page with account-creation and login links without gaining access to protected movie-discovery pages. | Must |
 
-Scope revision: Movie data will come from a CSV dataset stored in SQLite. FR-05 is retired because external-service error handling is no longer part of the project. Existing requirement IDs are retained and are not reassigned. Account creation is now Must under FR-08 rather than part of the Later features in FR-07. FR-09 now covers three home-page options; FR-10 retains genre-based title recommendations. FR-11 adds the required random picker. FR-12–FR-15 record optional enhancements as Later, not initial-build requirements. Streaming information has moved from the broad future list in FR-07 to the specific optional FR-14. The core searches do not require an API; optional TMDB enhancement integration remains unapproved.
+### Requirement ID ledger
+- **Retained and updated:** FR-01, FR-03, FR-04, FR-08, FR-09, FR-10, and FR-11 keep their original user goals. FR-10 replaces local shared-genre logic with TMDb recommendations. FR-11 replaces local random selection with API candidate selection. FR-03 drops runtime and adds a separate details page.
+- **Priority changes:** FR-06 promotes the watchlist from Later to Must. FR-12 promotes poster display from optional to Must, with missing-image handling.
+- **Replaced:** FR-02 is retired because its local genre/rating/runtime filtering behavior is removed. New FR-16 covers multi-genre API browsing instead of silently reassigning FR-02.
+- **New:** FR-17 makes the public welcome page explicit.
+- **Retired earlier:** FR-05 stays retired. Its ID is not revived; TMDb failures now fall under FR-04.
+- **Retired in this revision:** FR-13 (trailers/hover previews), FR-14 (streaming availability), and FR-15 (custom storyline similarity). These are excluded, not conditional requirements.
+- **Future boundary:** FR-07 is narrowed to TV shows and interface polish. Personalized recommendations, personal ratings, watched status, trailers, and streaming availability are not part of this project scope.
 
 ## 5. Data, inputs, and outputs
 | Item | Input / Stored data / Output | Source or destination | Fictional example |
 |---|---|---|---|
-| Movie dataset | Input | TMDB 5000 Movie Dataset on Kaggle; planned file: `tmdb_5000_movies.csv`. Download, preparation, and SQLite import are planned for later. Contents and usage terms are not yet verified. | A row containing title, genres, rating, runtime, and description |
-| Movie records | Stored data | CSV records imported into SQLite | Moonlight Picnic; Comedy; 7.8/10; 95 minutes; two neighbors organize an unexpected outdoor dinner |
-| Second movie record | Stored data | SQLite; fictional sample for demonstrating filtering | Clockwork Harbor; Mystery; 8.1/10; 120 minutes; a librarian investigates a missing town clock |
-| User account | Input / Stored data | Registration form, Django's built-in authentication, and SQLite | Fictional user `demo_viewer`; no password included |
-| Genre preference | Input | Movie Finder form | Comedy |
-| Minimum rating | Input | Movie Finder form; numeric review score, not an age classification | 7.0 on a proposed 0–10 scale |
-| Maximum runtime | Input | Movie Finder form; positive whole minutes | 100 minutes |
-| Matching movies | Output | Movie Finder results page | Moonlight Picnic matches Comedy, minimum rating 7.0, and maximum runtime 100 |
-| Third movie record | Stored data | SQLite; fictional sample for similar-movie checks | Garden of Laughs; Comedy and Family; 7.2/10; 90 minutes; a family prepares a neighborhood talent show |
-| Movie title | Input | Similar-movie form; choose a matching record if titles repeat | Moonlight Picnic |
-| Similar movies | Output | Similar-movie results page | Garden of Laughs shares Comedy with Moonlight Picnic; Moonlight Picnic itself is excluded |
-| Validation or no-match message | Output | Movie Finder form or results page | No movies match your preferences. Try changing your filters. |
+| Account | Input / Stored data | Registration form; Django user records and password hashes in SQLite | Fictional username `demo_viewer`; no password recorded |
+| Movie title | Input | Django search form to server-side TMDb title search | Moonlight Picnic |
+| Genres | Input | Genre choices from TMDb, validated by Django before an all-genres browse request | Comedy and Family |
+| Movie information | Output | TMDb response to dashboard, results, and details templates | Fictional movie A: Moonlight Picnic; Comedy; 7.8/10; two neighbors arrange an outdoor dinner |
+| Second movie | Output | Controlled fictional response for demonstrating genre browsing | Fictional movie B: Garden of Laughs; Comedy and Family; 7.2/10; a family prepares a talent show |
+| Third movie | Output | Controlled fictional response for demonstrating exclusion by genre | Fictional movie C: Clockwork Harbor; Mystery; 8.1/10; a librarian investigates a missing clock |
+| Popularity and popular movies | Output | TMDb popular-movie results to dashboard | Controlled response returns movies A and B; popularity is separate from numeric rating |
+| Movie-based recommendations | Output | TMDb recommendation response for a selected movie | Controlled response for A contains B; this does not claim TMDb will return that relationship live |
+| Poster | Output | TMDb-supplied image reference to browser, following documented image configuration | Generic local placeholder if no poster is supplied |
+| Saved movie reference | Stored data | SQLite WatchlistEntry linked to Django User; planned minimum fields: user, TMDb movie ID, title snapshot, saved timestamp | `demo_viewer` saves fictional movie B |
+| Watchlist | Output | Current user's SQLite entries; details use TMDb when available | Saved title remains visible during an API outage; current details may be unavailable |
+| Error or empty-result message | Output | Django form or results page | No movies matched your search. Try another title. |
 
-The dataset must contain movie titles, genres, numeric ratings, runtimes, and brief descriptions. A manageable subset with complete records will be used rather than trying to include every available movie. The examples above are fictional demonstration data, not verified dataset records.
+The planned source is the [TMDb developer API](https://developer.themoviedb.org/docs/getting-started). Relevant operations to verify include popular movies, title search, genre lists, discover filtering, movie details, recommendations, and image configuration. Documentation starting points include [Discover Movies](https://developer.themoviedb.org/reference/discover-movie) and [Movie Recommendations](https://developer.themoviedb.org/reference/movie-recommendations). These links identify intended research sources; no live requests or terms verification are claimed in this revision.
 
-My planned data source is the [TMDB 5000 Movie Dataset on Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata). I found the dataset and confirmed that its page is accessible in my browser. I plan to use `tmdb_5000_movies.csv`, which is expected to include movie titles, genres, ratings, runtimes, and descriptions.
-
-The expected columns are:
-
-| Project information | Expected CSV column |
-|---|---|
-| Movie title | `title` |
-| Genres | `genres` |
-| Numeric rating | `vote_average` |
-| Runtime | `runtime` |
-| Brief description | `overview` |
-
-I plan to download the CSV later, check and prepare the data, and import the movie records into SQLite for my Django application. Preparation will include checking for missing values and duplicates, making genre values readable, and confirming the rating scale and runtime units. I will use a manageable set of complete records for the first version.
-
-The actual CSV contents, column names, missing values, and usage terms have not yet been verified. Before using the data, I will review the dataset's license and any attribution requirements. Being able to open the Kaggle page does not confirm those details. No dataset has been downloaded or imported.
+The CSV dataset is no longer a dependency. SQLite is not a replacement movie search engine: it stores authentication data and each user's saved references, with only a minimal title snapshot for a readable watchlist during outages. TMDb IDs, not titles, identify movies. Fictional examples above are planned test responses, not actual TMDb movie records or verified API outputs.
 
 ## 6. Acceptance criteria
-The following examples use the fictional movie records in section 5. AC-05, AC-13, and AC-14 use only the original two records (Moonlight Picnic and Clockwork Harbor) and use a proposed 0–10 rating scale. The final rating scale must match the selected dataset.
+These are planned checks, not execution results. Controlled fictional API responses make behavior repeatable; a separate live integration check will confirm real access. Every criterion below is required unless its underlying requirement is explicitly Later.
 
 | Criterion ID | Requirement ID | Given / When | Expected result |
 |---|---|---|---|
-| AC-01 | FR-01 | Given an existing demonstration account, when the user signs in with valid credentials | The protected Movie Finder home page opens with all three discovery choices. No passwords are recorded in the proposal. |
-| AC-02 | FR-01 | Given the sign-in page, when the user submits invalid credentials | A helpful error appears and access is not granted. |
-| AC-03 | FR-01 | Given a signed-out visitor, when the visitor directly requests the home page, either search page, any discovery results page, or the Surprise Me action directly | The server redirects the visitor to sign-in or denies access. |
-| AC-04 | FR-01 | Given a signed-in user, when the user signs out through a CSRF-protected POST action and requests the protected page again | The user must sign in again to access the page. |
-| AC-05 | FR-02 | Given the two sample movies in SQLite, when the user selects Comedy, minimum rating 7.0, and maximum runtime 100 | Moonlight Picnic appears and Clockwork Harbor does not. |
-| AC-06 | FR-02 | Given Moonlight Picnic has rating 7.8 and runtime 95, when the user selects Comedy, minimum rating 7.8, and maximum runtime 95 | Moonlight Picnic appears because both boundaries are inclusive. |
-| AC-07 | FR-03 | Given a matching movie, when its result is displayed by each of the three discovery methods | Its title, genres, rating and scale, runtime in minutes, and brief description are readable. |
-| AC-08 | FR-04 | Given only the two sample movies, when the user selects Comedy and minimum rating 9.0 | No movies appear and a clear message invites the user to change the filters. |
-| AC-09 | FR-04 | Given the proposed 0–10 rating scale, when the user submits a rating outside that scale, a negative runtime, or text in a numeric field | A helpful validation error identifies the invalid input and allows correction. |
-| AC-13 | FR-02 | Given the two sample movies, when the user selects only Comedy and leaves rating and runtime blank | Moonlight Picnic appears; blank filters do not restrict rating or runtime. |
-| AC-14 | FR-02 | Given the two sample movies, when the user leaves all filters blank | Both movies appear. |
-| AC-15 | FR-08 | Given an unused fictional username and a valid password entered identically twice, when a new user submits registration | An account is created, and the user can sign in and reach the home page. No password is included in the proposal. |
-| AC-16 | FR-08 | When registration uses an existing username, mismatched passwords, or a password rejected by Django's configured validators | A helpful error appears and no new account is created. |
-| AC-17 | FR-09 | Given a signed-in user on the home page, when the user selects each of the three discovery choices | The selected search form or Surprise Me result opens, and the user can return home to choose another method. |
-| AC-18 | FR-10 | Given all three sample movies, when the user searches for Moonlight Picnic | Garden of Laughs appears because it shares Comedy; Clockwork Harbor and Moonlight Picnic do not appear. |
-| AC-19 | FR-10 | Given two different records share multiple genres, when one is selected as the starting movie | The other record appears only once and the starting record is excluded. |
-| AC-20 | FR-04, FR-10 | When a user submits a blank title or a title absent from SQLite | A helpful message requests a title or explains that the movie was not found, and the user can try again. |
-| AC-21 | FR-04, FR-10 | Given the three sample movies, when the user searches for Clockwork Harbor | A clear message explains that no other movies share its genres. |
-| AC-22 | FR-10 | Given Moonlight Picnic is stored, when the user enters `  moonlight picnic  ` | The same movie is found regardless of capitalization and surrounding spaces. |
-| AC-23 | FR-10 | Given two movie records have the same title, when that title is submitted | The user chooses between the matching records before recommendations are generated; only the selected record is excluded. |
-| AC-24 | FR-11, FR-03 | Given eligible fictional movies in SQLite, when a signed-in user clicks Surprise Me! | Exactly one eligible movie is displayed with title, genres, rating, runtime, and description. No external movie service is needed. |
-| AC-25 | FR-11 | Given a random-movie result, when the user clicks Surprise Me Again | A new random selection is requested and exactly one eligible result is displayed. Whether the same movie may repeat immediately remains a business-rule decision. |
-| AC-26 | FR-11, FR-04 | Given no eligible movies in SQLite, when the user clicks Surprise Me! | A helpful no-movies-available message appears and the user can return home without an application error. |
-| AC-27 | FR-01, FR-11 | Given a signed-out visitor, when the visitor requests a random selection directly | The server redirects to sign-in or denies access; no protected movie result is exposed. |
-| AC-28 | FR-12 | If the poster enhancement is approved, given a verified poster and a movie without one, when their results are displayed | The verified poster appears for the first movie; the other result remains readable and usable without a broken-image dependency. |
-| AC-29 | FR-13 | If hover previews are approved, given a playable verified trailer, when the cursor remains on the poster for 7 continuous seconds and then leaves | Playback starts muted after the delay; leaving stops playback and restores the poster. Leaving before 7 seconds cancels the preview. |
-| AC-30 | FR-13 | If trailers are approved, when a keyboard or mobile user selects Watch Trailer, or autoplay is unsupported | An available verified trailer can be opened or played through the control without hover. Missing or blocked trailers leave movie discovery usable. |
-| AC-31 | FR-14 | If streaming enhancement is approved, given reliable US provider data and a separate result with no reliable availability data | The first shows supported US provider information; the second says “Streaming availability unavailable.” No availability is invented. |
-| AC-32 | FR-15 | If storyline comparison is approved, given a documented ranking rule and fictional descriptions with known keyword overlap | Recommendation ordering matches the approved expected order and still excludes the original movie and duplicate results. Exact samples and ordering must be specified before this enhancement is built. |
+| AC-01 | FR-01, FR-09 | Given a valid demonstration account, when the user signs in | The protected dashboard opens with popular movies and all discovery/watchlist navigation. |
+| AC-02 | FR-01 | When invalid login credentials are submitted | A helpful error appears and no authenticated access is granted. |
+| AC-03 | FR-01 | Given a signed-out visitor, when any protected discovery, detail, or watchlist URL is requested directly | The server redirects to login or denies access; no private entries are exposed. |
+| AC-04 | FR-01 | Given a signed-in user, when the user submits CSRF-protected POST logout and revisits a protected page | The session no longer grants access and login is required. |
+| AC-07 | FR-03 | Given fictional movie B in a details response, when its card is selected from search, browse, random discovery, or watchlist | A separate details page displays B's title, genres, rating with scale, description, and poster or placeholder. Runtime is not required. |
+| AC-08 | FR-04 | Given an empty TMDb search or browse response, when results are displayed | A clear no-results message appears with a way to change the search or return to the dashboard. |
+| AC-15 | FR-08 | Given an unused username and an acceptable password confirmed twice, when registration is submitted | One account is created and can sign in; no credentials are saved in documentation. |
+| AC-16 | FR-08 | When registration uses an existing username, mismatched passwords, or a password rejected by Django validators | Clear errors appear and no new account is created. |
+| AC-17 | FR-09 | Given a signed-in user and a controlled popular-movie response containing A and B, when the dashboard opens | A and B are displayed; search, genre browsing, Surprise Me, and My Watchlist are reachable and have a return-home path. |
+| AC-19 | FR-10 | Given a recommendation response containing selected movie A and duplicate copies of B, when recommendations are displayed | B appears once and A is excluded. |
+| AC-20 | FR-04, FR-10 | When the user submits a blank title or searches an unknown title with an empty response | Blank input prompts for a title; an unknown title produces a no-results message. |
+| AC-21 | FR-04, FR-10 | Given a selected movie with an empty recommendation response, when related movies are requested | Its details remain usable and a no-recommendations message appears. |
+| AC-23 | FR-10 | Given two TMDb matches with the same title but different IDs, when the user selects one | Details and recommendations use the selected TMDb ID, not an arbitrary title match. |
+| AC-24 | FR-11, FR-03 | Given a controlled candidate response containing A, B, and C, when Surprise Me is clicked | Exactly one candidate is selected and its details are shown; no global-catalog randomness is claimed. |
+| AC-25 | FR-11 | Given one random result, when Try Again is clicked | Another selection is requested and one valid candidate is displayed. Immediate repeats are allowed to keep the rule simple. |
+| AC-26 | FR-11, FR-04 | Given an empty candidate response, when Surprise Me is clicked | A helpful no-movies-available message appears with retry and dashboard navigation. |
+| AC-27 | FR-01, FR-11 | Given a signed-out visitor, when the random-selection URL is requested directly | Login is required before a result can be viewed. |
+| AC-28 | FR-12 | Given one movie with a poster and another without one, or an image that fails to load | A supplied poster is displayed where available; otherwise a placeholder and meaningful alternative text keep the page usable. |
+| AC-33 | FR-16 | Given fictional responses for Comedy browsing containing A and B, when Comedy is selected | A and B appear without a rating or runtime threshold. |
+| AC-34 | FR-16 | Given Comedy and Family are selected and fictional movies A, B, and C, when genre browsing runs | Only B qualifies because it includes both genres; A and C do not. The request uses TMDb's documented all-genres behavior, to be verified during integration. |
+| AC-35 | FR-16, FR-04 | When no genre or an invalid genre identifier is submitted | A helpful validation message appears; an invalid browse request is not sent. |
+| AC-36 | FR-10 | Given title search returns A and B and the recommendation response for A contains B, when the user selects A and requests related movies | Both search matches are selectable and B is shown as an API-supplied recommendation, without custom storyline or history ranking. |
+| AC-37 | FR-06 | Given user One saves B twice, when the watchlist is reopened or the application restarts | Exactly one saved entry for B remains in user One's SQLite watchlist. |
+| AC-38 | FR-06, FR-01 | Given user One has saved B and user Two signs in, when user Two views their watchlist or attempts to remove One's entry by ID | One's entry is not shown or changed; an ownership check denies the attempted mutation. |
+| AC-39 | FR-06 | Given user One has saved B, when One submits its CSRF-protected POST removal | B is removed from One's watchlist; other users' entries remain unchanged. A GET request cannot save or remove entries. |
+| AC-40 | FR-04 | Given a controlled TMDb timeout, authorization error, or malformed response, when a movie feature is requested | A helpful unavailable message appears without exposing credentials or a traceback; retry/navigation remain available. Existing saved titles still appear in the watchlist. |
+| AC-41 | FR-03, FR-04 | Given a missing movie ID or missing description/rating in a details response | The page shows an appropriate movie/field-unavailable message instead of invented values or an application error. |
+| AC-42 | FR-17 | Given a signed-out visitor, when the root welcome page is opened | The welcome page shows registration/login links; discovery still requires login. |
+| AC-43 | FR-09, FR-10, FR-16 | Given securely configured TMDb access, when a representative live popular, search, detail, recommendation, and all-genres browse request is demonstrated | Real responses render correctly or honestly report empty results; the integration and attribution checks are recorded. This is planned, not yet run. |
 
-AC-10, AC-11, and AC-12 are retired with the previous external-service and pagination scope. The remaining acceptance-criterion IDs are preserved. AC-28–AC-32 are conditional checks for Later enhancements, not required for the core application. AC-32 is a planning placeholder until a storyline ranking rule and concrete examples are approved. Similar-movie ordering by shared-genre count and rating remains a decision to confirm in the business-rules step; storyline comparison will not silently change it.
+### Acceptance-criterion history
+Existing IDs are retained where their purpose remains: AC-01–AC-04, AC-07–AC-08, AC-15–AC-17, AC-19–AC-21, AC-23–AC-28. Their wording now reflects API responses and the revised page structure.
+
+AC-05, AC-06, AC-09, AC-13, and AC-14 are retired with the old local rating/runtime filtering rules. AC-18 and AC-22 are retired because local shared-genre and exact-title matching are replaced by TMDb behavior. AC-29–AC-32 are retired with trailers, streaming, and custom storyline ranking. AC-10–AC-12 remain retired from earlier revisions. New checks start at AC-33; retired IDs are not reused.
 
 ## 7. Feasibility and boundaries
-This project will use Django, SQLite, and basic Python. Django templates will display the pages, forms will validate search inputs, and Django's ORM will filter the movie records stored in SQLite. Django's built-in user creation form and password validation will support registration. Its session authentication will handle sign-in, CSRF-protected POST sign-out, and server-side protection of the home page, both search methods, and their results. Passwords will be handled by Django rather than custom password storage. A small Movie data model and Django's existing user model should be enough for the first version.
+Django provides URL routing, views, forms, templates, ORM access, and built-in user/session authentication. SQLite is sufficient for a small course application with accounts and private watchlists. A minimal WatchlistEntry can reference a user and a TMDb movie ID with a unique pair, a title snapshot, and a saved timestamp. Movie ownership is not required; ownership applies to saved entries. No separate local movie catalog, CSV import, custom recommendation engine, or frontend framework is needed.
 
-Similar-movie recommendations will use a simple genre comparison: find the chosen record, compare its genre names or identifiers with other stored movies, and return each movie sharing at least one genre, excluding the original record. This uses basic Python and database queries without machine learning or an external API. Genres will need to be stored consistently so comparisons use whole genres rather than partial text matches. Searching by title will use a case-insensitive exact match after trimming surrounding spaces. Duplicate titles will require a simple selection step using distinct record identifiers.
+Python code will make TMDb requests from the server using timeouts and validated inputs. API authentication material must stay in secure local environment configuration, not templates, browser scripts, Git, or documents. Proposed configuration names are `TMDB_READ_ACCESS_TOKEN` and `DJANGO_SECRET_KEY`; these are names only, not values. `DJANGO_DEBUG` and `DJANGO_ALLOWED_HOSTS` describe local runtime configuration if used. Exact setup will be documented during implementation, without committing credentials.
 
-A CSV dataset will be downloaded and imported during development after its suitability and permitted use have been checked. Once the movie records are stored locally, searching will not require an external connection. Using a manageable subset will keep data preparation and displaying results simple. The first version will use a straightforward list of matches without complicated pagination or personalized ranking.
+TMDb access, account/credential setup, endpoint behavior, all-genres filtering semantics, permitted use, attribution, costs, image configuration, and applicable request limits need confirmation before the API-dependent build. Do not assume unrestricted or free access. A small server-side integration helper will centralize requests and readable error handling. The application will display required attribution once the current terms are checked. Controlled fictional responses support tests without calling TMDb; they do not replace a successful live integration demonstration.
 
-The main risks are missing descriptions or runtimes, inconsistent genre labels, duplicate records or titles, and ratings that use an unexpected scale. Before importing, the selected records will need to be checked for complete required fields, consistent genres, numeric ratings, and runtimes in minutes. The dataset's source and attribution requirements must also be recorded. Recommendations will be limited to the movies included in the local database, so they will not cover every movie or automatically update with new releases.
+Surprise Me will choose randomly from a bounded candidate response, initially a valid page of popular movies. This is intentionally simpler than sampling every movie on TMDb. Try Again requests a fresh selection, but repeats are allowed. TMDb numeric ratings are distinct from popularity and do not represent user-entered ratings. Movie-based recommendations use TMDb's available results and may be absent; no custom genre/storyline scoring or claims about TMDb's internal algorithm are made. Movie data can change, so fixed live titles or recommendation order will not be promised.
 
-TV shows, favorites, watchlists, recommendations based on viewing history, streaming links, password reset, and hosting are outside the first version. Final course delivery will be a video demonstration of the local application. No dataset has been downloaded and no application has been built or tested as part of this revision.
+Main risks are unavailable credentials or networking, service interruptions, empty or changing responses, missing posters/descriptions, and unauthorized watchlist access. Timeouts, validation, clear messages, placeholders, unique saved entries, authentication, and owner-filtered database operations address these risks. SQLite saves persist independently of the API, but current movie details and discovery require connectivity. A title snapshot keeps saved entries readable during an outage; it does not guarantee offline discovery.
+
+Excluded from this project: rating/runtime/year filters, movie-runtime display as a requirement, CSV data import, trailers and hover previews, streaming availability, personal ratings, watched status, personalized recommendations, and custom storyline similarity. Password reset, email verification, TV shows, and hosting are also outside the initial scope. Delivery is a local video demonstration by December 7. The first build increment remains the Django/SQLite authentication foundation with protected access and screenshot evidence for the November 18 initial-build deadline. No implementation, screenshot, test, or API success is claimed here.
 
 ## 8. Assumptions and open questions
 | Item | Assumption / Open question | Owner | Resolution |
 |---|---|---|---|
-| A-01 | Movie Finder is for anyone struggling to choose a movie. | Kate McKenzie | Confirmed. |
+| A-01 | Intended users need help choosing movies. | Kate McKenzie | Retained project purpose. |
 | O-01 | Primary audience. | Kate McKenzie | Resolved — anyone struggling to find a movie. |
-| O-02 | Movie data source. | Kate McKenzie | Resolved — use an existing CSV dataset and store its records in SQLite. |
-| O-03 | Meaning of rating. | Kate McKenzie | Resolved — numeric review score rather than age classification. |
-| O-04 | Search methods and matching behavior. | Kate McKenzie | Confirmed — optional preference filters and title-based recommendations sharing genres, excluding the original movie. |
-| A-02 | Blank filters impose no restriction, and numeric boundaries are inclusive. | Kate McKenzie | Confirmed. |
-| A-03 | Ratings use a 0–10 scale and runtime uses positive whole minutes. | Kate McKenzie | Runtime is measured in minutes; the proposed rating scale must be checked against the chosen dataset. |
-| O-05 | Planned dataset and remaining checks. | Kate McKenzie | Planned source — TMDB 5000 Movie Dataset on Kaggle, using `tmdb_5000_movies.csv`. The page is accessible in my browser. Open — verify the actual CSV contents, missing values, rating scale, runtime units, usage terms, and attribution before use. |
-| O-06 | Student name. | Kate McKenzie | Resolved — Kate McKenzie. |
-| A-04 | The project uses Django authentication, SQLite, and a local video demonstration. | Kate McKenzie | Included to follow the repository's course requirements. |
-| O-07 | Instructor review and approval. | Instructor | Pending. |
-| O-08 | Handling incomplete movie records. | Kate McKenzie | Proposed approach — use a subset with complete required fields; confirm during data preparation. |
-| O-09 | Local dataset or externally requested movie data? | Kate McKenzie | Resolved — local CSV dataset, imported into SQLite. |
-| A-05 | Account creation and a home page with both search choices. | Kate McKenzie | Required in this revision. |
-| A-06 | Similar movies share at least one genre; title lookup ignores capitalization and surrounding spaces, and duplicate titles require choosing a record. | Proposal defaults | Simple matching rules for the first version; no advanced ranking. |
+| O-02 | Main movie source. | Kate McKenzie | Changed November 11 — TMDb API replaces the CSV catalog. |
+| O-03 | Meaning of rating. | Kate McKenzie | Numeric TMDb movie score, not view count or a personal rating. Confirm displayed scale from current documentation. |
+| O-04 | Browse matching behavior. | Kate McKenzie | Confirmed — every selected genre must match; rating/runtime/year filters are excluded. |
+| A-02 | Blank filters impose no restriction. | Kate McKenzie | Superseded — genre browsing now requires at least one genre; old numeric filter boundaries do not apply. |
+| A-03 | Runtime and rating scale assumptions. | Kate McKenzie | Runtime requirement retired. Confirm numeric rating scale before display. |
+| O-05 | External source verification. | Kate McKenzie | Open — confirm credentials/access, endpoint semantics, terms, costs, attribution, image use, and request limits. No API connection has been made. |
+| O-06 | Student identity. | Kate McKenzie | Confirmed — Kate McKenzie. |
+| A-04 | Course stack and delivery. | Kate McKenzie | Django, SQLite, built-in authentication, and local video demonstration retained. |
+| O-07 | Instructor review. | Instructor | Pending; no feedback or approval evidence supplied. |
+| O-08 | Missing movie information. | Kate McKenzie | Show placeholders or field-unavailable messages; do not invent values. |
+| O-09 | Role of SQLite. | Kate McKenzie | Accounts, sessions, and private saved entries; no local discovery catalog. |
+| A-05 | Public welcome and private dashboard. | Kate McKenzie | Required; dashboard has popular movies and four navigation choices including watchlist. |
+| A-06 | Recommendation logic. | Kate McKenzie | Local similarity superseded — use TMDb movie-based recommendations, excluding selected/duplicate IDs, without user-history personalization. |
+| A-07 | Surprise Me candidate set. | Proposed implementation choice | A bounded popular-movie response; immediate repeats allowed. This defines manageable random selection rather than catalog-wide sampling. |
 
 ## 9. Student explanation
-This application will be useful because it helps people find movies to watch without spending a lot of time searching through different options. Users can enter their preferences and receive movie suggestions with ratings and brief descriptions to help them decide.
+My original goal is to help people find something to watch without spending too much time searching. The revised plan keeps that goal and adds a private watchlist so users can keep track of movies they want to see.
 
-This project is manageable because I can use an existing movie dataset and basic Python filtering to find matching movies. Django and SQLite will allow me to build a simple web application without needing complicated APIs or advanced features.
+I plan to use Django for the pages, forms, and login, SQLite for accounts and watchlists, and TMDb for current movie information. This avoids preparing a separate movie dataset or building my own recommendation algorithm. The tradeoff is that discovery depends on an outside service. I will need to understand the API requests, error handling, and how watchlist entries stay private.
+
+This explanation is a draft for Kate to review in her own words. It is not evidence of student understanding, implementation, testing, or instructor approval.
