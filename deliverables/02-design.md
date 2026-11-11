@@ -3,7 +3,7 @@
 ## 1. Design baseline
 - Project: Movie Finder — Kate McKenzie
 - Proposal: [01-proposal.md](01-proposal.md), revised November 11, 2026
-- Status: Draft — all eleven sections written; student review, registration alignment, API verification and GitHub rendering review remain pending. Not ready for build.
+- Status: Draft — all eleven sections written; student review and API verification remain pending; diagrams are embedded as rendered images. Not ready for build.
 - Instructor feedback: None supplied; instructor review pending.
 
 ### November 11 scope revision
@@ -31,19 +31,9 @@ These changes supersede earlier diagrams and baseline notes about optional APIs 
 
 Proposed architecture, not an implemented system.
 
-```mermaid
-flowchart TB
-    Browser["Browser<br/>Django templates, HTML and CSS"]
-    Django["Django<br/>URLs, views, forms and authentication"]
-    TMDb["TMDb API<br/>Popular movies, title search, genres,<br/>details and movie recommendations"]
-    SQLite[("SQLite<br/>User accounts, sessions and private watchlists")]
-    Browser -->|"Requests"| Django
-    Django -->|"HTML responses"| Browser
-    Django -->|"Server-side API requests"| TMDb
-    TMDb -->|"Movie information and poster references"| Django
-    Django -->|"Account and watchlist queries/updates"| SQLite
-    SQLite -->|"Current user's saved records"| Django
-```
+![Movie Finder — System Architecture](diagrams/system-architecture.png)
+
+[Full-size SVG](diagrams/system-architecture.svg) · [Editable Graphviz source](diagrams/system-architecture.dot)
 
 TMDb supplies movie information, numeric ratings, popularity, and available movie-based recommendations. Posters load from its supplied image references. SQLite stores accounts, sessions, and saved movie references with a minimal title snapshot; it is not a local movie discovery catalog. During an API outage, saved titles remain readable, but current details and discovery may be unavailable. Django keeps API credentials server-side and converts errors into helpful messages. API access, current terms, attribution, and endpoint behavior remain unverified.
 
@@ -53,25 +43,9 @@ TMDb supplies movie information, numeric ratings, popularity, and available movi
 
 Proposed persistent entities. User is Django's built-in user model; the diagram lists relevant fields rather than every built-in field. Standard Django session tables are omitted for readability.
 
-```mermaid
-erDiagram
-    USER ||--o{ WATCHLIST_ENTRY : owns
-    USER {
-        integer id PK
-        string username UK
-        string password "Django-managed password hash"
-        boolean is_active
-        boolean is_staff
-        boolean is_superuser
-    }
-    WATCHLIST_ENTRY {
-        integer id PK
-        integer user_id FK
-        integer tmdb_movie_id "External movie identifier"
-        string title_snapshot
-        datetime saved_at
-    }
-```
+![Movie Finder — Data Model (ERD)](diagrams/data-model.png)
+
+[Full-size SVG](diagrams/data-model.svg) · [Editable Graphviz source](diagrams/data-model.dot)
 
 | Entity | Field | Django field type | Required / Default | Validation | Relationship / Deletion rule |
 |---|---|---|---|---|---|
@@ -94,7 +68,7 @@ These are proposed local application routes, not TMDb endpoint URLs or implement
 | Requirement ID | Page / URL | User action / HTTP method | Input and validation | Result / Template |
 |---|---|---|---|---|
 | FR-17 | Welcome `/` | GET: open website | No login or input required | `welcome.html`: introduction, Log In and Create Account links |
-| FR-08, FR-04 | Register `/accounts/register/` | GET: show form; POST: create account | Unique username, password and confirmation; Django user-creation/password validators; CSRF protection | `registration/register.html`: field errors on failure. On success, create authenticated session and redirect to `/dashboard/`, following the current design; proposal wording alignment remains pending. |
+| FR-08, FR-04 | Register `/accounts/register/` | GET: show form; POST: create account | Unique username, password and confirmation; Django user-creation/password validators; CSRF protection | `registration/register.html`: field errors on failure. On success, automatically authenticate the user, create the Django session and redirect to `/dashboard/`, consistently with the proposal. |
 | FR-01, FR-04, FR-09 | Login `/accounts/login/` | GET: show form; POST: sign in | Django authentication validates username/password; generic invalid-credentials message; CSRF protection | `registration/login.html`; successful login redirects to `/dashboard/`. No movie data is exposed before sign-in. |
 | FR-01 | Logout `/accounts/logout/` | POST only: end session | Authenticated session; CSRF token; GET must not log the user out | Redirect to public welcome page. Protected routes require sign-in again. |
 | FR-09, FR-12, FR-04 | Dashboard `/dashboard/` | GET: show popular movies and navigation | Login required; server-side request for popular TMDb movies | `dashboard.html`: popular cards, search bar, genre browsing, Surprise Me and My Watchlist. Show a readable message if popular data is unavailable; navigation remains usable. |
@@ -115,92 +89,19 @@ These are proposed local application routes, not TMDb endpoint URLs or implement
 - Read-only discovery uses GET. Registration, login, logout, saving and removal use CSRF-protected POST. Save/remove controls identify the movie or saved entry, never the acting user.
 - TMDb failures leave a readable page with retry and dashboard links. No raw credential, traceback, or technical API response is displayed. Public welcome and local account pages do not depend on movie-service availability.
 
-Registration's direct-to-dashboard behavior follows the current flowchart. It is a documented design decision still awaiting synchronization with the proposal's register-then-sign-in wording; it is not evidence that registration has been implemented. No new requirement IDs are introduced in this section.
+Registration automatically authenticates the new user and redirects to the protected dashboard, consistently with the revised proposal and flowchart. This is planned behavior, not an implemented feature. No new requirement IDs are introduced in this section.
 
 ## 5. Main user flow
 
 ### Movie Finder — Main User Flow
 
-All steps are proposed. The chart flows downward; short continuation notes replace long return arrows. All dashboard, discovery, details, and watchlist requests require login, even when a URL is entered directly.
+All steps are proposed. The rendered chart flows downward; short continuation notes replace long return arrows. All dashboard, discovery, details, and watchlist requests require login, even when a URL is entered directly.
 
-```mermaid
-flowchart TB
-    Start(["START — User opens Movie Finder"])
-    Welcome["Public Welcome Page"]
-    Account{"Choose account action"}
-    Login["Log In"]
-    Register["Create Account"]
-    Validate["Django validates submitted information"]
-    Valid{"Valid?"}
-    Error["Show error"]
-    Retry(["Retry the selected account form"])
-    Dashboard["Protected Movie Discovery Dashboard<br/>Popular movies"]
-    Choice{"Choose an action"}
+![Movie Finder — Main User Flow](diagrams/main-user-flow.png)
 
-    Start --> Welcome --> Account
-    Account -->|"Existing account"| Login
-    Account -->|"New account"| Register
-    Login --> Validate
-    Register --> Validate
-    Validate --> Valid
-    Valid -->|"No"| Error --> Retry
-    Valid -->|"Yes: authenticated session"| Dashboard --> Choice
+[Full-size SVG](diagrams/main-user-flow.svg) · [Editable Graphviz source](diagrams/main-user-flow.dot)
 
-    subgraph Discover["Movie discovery"]
-        Search["Search Movies by Title"]
-        Browse["Browse by Genre<br/>Match ALL selected genres"]
-        Surprise["Surprise Me"]
-        Fetch["Django retrieves TMDb information"]
-        Found{"Request valid and results found?"}
-        Empty["Helpful error or no-results message"]
-        Results["Show movie results or one random movie"]
-        Detail["Select movie → Movie Details<br/>Poster, title, genres, rating, description"]
-        Next{"Next action"}
-        Save["Save to my watchlist<br/>Prevent duplicate saves"]
-        Saved(["Saved — open My Watchlist or dashboard"])
-        Again(["Try Again — repeat Surprise Me selection"])
-        Recommendations(["View TMDb recommendations<br/>Repeat results-to-details flow"])
-        Back(["Return to dashboard"])
-
-        Search --> Fetch
-        Browse --> Fetch
-        Surprise --> Fetch
-        Fetch --> Found
-        Found -->|"No"| Empty --> Back
-        Found -->|"Yes"| Results --> Detail --> Next
-        Next -->|"Save movie"| Save --> Saved
-        Next -->|"Another random selection"| Again
-        Next -->|"Related movies"| Recommendations
-        Next -->|"Home"| Back
-    end
-
-    subgraph Watchlist["Personal watchlist"]
-        List["My Watchlist<br/>Only my saved movies from SQLite"]
-        SavedChoice{"Choose saved-movie action"}
-        OpenSaved(["Open saved movie's Details page"])
-        Remove["Remove my saved entry"]
-        Updated(["Show updated list or empty-watchlist message"])
-        List --> SavedChoice
-        SavedChoice -->|"Open"| OpenSaved
-        SavedChoice -->|"Remove"| Remove --> Updated
-        SavedChoice -->|"Home"| ListHome(["Return to dashboard"])
-    end
-
-    subgraph Logout["End session"]
-        SignOut["Log Out — secure POST"]
-        EndSession["Django ends session"]
-        End(["Return to public welcome/login<br/>Protected access requires sign-in again"])
-        SignOut --> EndSession --> End
-    end
-
-    Choice --> Search
-    Choice --> Browse
-    Choice --> Surprise
-    Choice --> List
-    Choice --> SignOut
-```
-
-**Account flow:** This revised user-flow design proposes creating an authenticated session immediately after successful registration, so either valid account path reaches the dashboard as requested. This is a design change from the proposal's earlier register-then-sign-in step; that wording must be synchronized in the next proposal review. Invalid registration or login returns to its own form with field-appropriate errors, not authenticated access.
+**Account flow:** Successful registration automatically authenticates the new user and redirects to the protected dashboard. Valid login does the same. Invalid registration or login shows errors and allows retry without granting access. The proposal and design now use this same rule.
 
 **Continuations:** Rounded continuation nodes describe navigation rather than separate application features. Retry returns to the selected account form. Try Again repeats the random-selection request; immediate repeats are allowed. A saved movie opens the same Details page used by discovery. Recommendation results use the same results/details flow. Return-home actions lead back to the protected dashboard. The chart avoids drawing those long return lines across other branches.
 
@@ -220,7 +121,7 @@ This section plans access for FR-01, FR-06, FR-08, FR-09, and FR-17. Authenticat
 
 Use Django's built-in user model, UserCreationForm, authentication forms, and session framework. Registration validates a unique username and passwords entered twice, using Django's configured password validators. Django hashes passwords; the application never stores or compares plain-text passwords itself. Invalid registration shows field errors without creating an account.
 
-Following the current flowchart and section 4, successful registration establishes a Django authenticated session and redirects to `/dashboard/`. Returning users sign in through Django's login view; valid credentials also redirect to the dashboard. Invalid credentials display a generic helpful error and do not grant access. This direct-to-dashboard registration choice still needs to be synchronized with the proposal's earlier register-then-sign-in workflow; that documentation change is not claimed complete here.
+Following the current flowchart and section 4, successful registration establishes a Django authenticated session and redirects to `/dashboard/`. Returning users sign in through Django's login view; valid credentials also redirect to the dashboard. Invalid credentials display a generic helpful error and do not grant access. This direct-to-dashboard registration behavior is now consistent in the proposal and design.
 
 Account creation and login use CSRF-protected POST forms. Django manages session identifiers through its standard session middleware and cookies, with session records stored in SQLite. The browser does not receive stored password hashes. Public welcome/login/registration work without TMDb; a movie API failure after login shows an unavailable message rather than preventing account access.
 
@@ -302,7 +203,7 @@ These are planned rules for the required application, not calculations or output
 | Requirement ID | Output / Rule | Calculation or format | Example |
 |---|---|---|---|
 | FR-17, FR-01 | Public welcome and protected application | Welcome, login and registration are public. Dashboard, discovery, details, recommendations and watchlist require an authenticated session on every request. | A signed-out visitor can open `/` but is redirected to login when requesting `/watchlist/`. |
-| FR-08, FR-01 | Registration and login feedback | Unique username; matching passwords accepted by Django validators. Invalid input shows errors without granting access. The design proposes an authenticated session after registration; proposal wording alignment remains pending. | A duplicate `demo_viewer` username produces a form error, not a second account. |
+| FR-08, FR-01 | Registration and login feedback | Unique username; matching passwords accepted by Django validators. Invalid input shows errors without granting access. Successful registration automatically creates an authenticated session and redirects to the dashboard. | A duplicate `demo_viewer` username produces a form error, not a second account. |
 | FR-09, FR-12 | Popular-movie dashboard | Show the available popular results in TMDb response order, with duplicate movie IDs removed while retaining first occurrence. Popularity is supplied by TMDb, not calculated from watchlists or treated as a review score. | A controlled response containing A, B and B produces cards for A and B. |
 | FR-10 | Title-search matches | Trim surrounding spaces; reject blank or overlong input as specified in section 4. Use TMDb search behavior and retain response order; select movies by ID rather than assuming an exact title match. Deduplicate by movie ID, not title. | Two records titled Moonlight Picnic with different TMDb IDs remain individually selectable. |
 | FR-16 | ALL-selected-genres matching | Require at least one valid genre ID. A movie qualifies only if its genres contain every selected genre: selected genres are a subset of movie genres. Deduplicate selected IDs before requesting documented TMDb AND behavior. | Selecting Comedy and Family includes Garden of Laughs (both genres), but excludes Moonlight Picnic (Comedy only) and Clockwork Harbor (Mystery). |
@@ -365,7 +266,7 @@ Dates after the initial-build deadline are proposed targets, not completed commi
 
 Before INC-03, verify TMDb credentials, networking, terms, attribution, image use and required endpoint behavior. Mocked responses allow isolated development/testing but do not prove live integration or replace AC-43. If access remains unavailable, document the blocker and seek a scope decision; do not silently return to a CSV or invent successful API results. Account and SQLite work can continue independently.
 
-Before INC-02, synchronize the proposal's registration workflow with the design's automatic authenticated session after successful registration. For each increment, preserve IDs, use non-destructive migrations, update actual build-log evidence, and ask Kate to explain the request/data flow. No dependency installation, application code, migration, test execution, screenshot or API request is performed in this planning section.
+INC-02 must implement the consistent proposal/design rule: successful registration automatically authenticates the user and redirects to the dashboard. For each increment, preserve IDs, use non-destructive migrations, update actual build-log evidence, and ask Kate to explain the request/data flow. No dependency installation, application code, migration, test execution, screenshot or API request is performed in this planning section.
 
 ## 10. Verification and delivery plan
 
@@ -381,7 +282,7 @@ All checks and evidence below are **planned and unrun**. No passing result, scre
 | AC-04 | Authenticated session | POST logout, then request protected page again | Session ends; login required | Django client test with CSRF checks enabled plus browser sequence |
 | AC-07 | Fictional B details response | Open details from search, browse, random discovery and saved entry | Separate details page shows required fields and poster/placeholder | View/template tests for every entry path and browser navigation checks |
 | AC-08 | Empty search and browse responses | Submit valid searches | No-results message with retry/home path | Mocked view tests plus browser empty state |
-| AC-15 | Unused fictional username and acceptable confirmed password | Register | Exactly one account created; account can access authenticated dashboard under the current design | Form/database/session tests plus registration browser check; proposal workflow alignment pending |
+| AC-15 | Unused fictional username and acceptable confirmed password | Register | Exactly one account created; account can access authenticated dashboard under the current design | Form/database/session tests plus registration browser check; verify automatic authentication and dashboard redirect |
 | AC-16 | Duplicate username, mismatched passwords, rejected password | Submit each invalid registration case | Helpful errors; no new account | Form tests checking errors and account counts |
 | AC-17 | Popular response containing A and B | Open dashboard and follow each navigation choice | Popular cards and search/browse/random/watchlist links work; return-home routes are usable | Mocked dashboard test and browser navigation checklist |
 | AC-19 | Selected A; recommendations `[A, B, B]` | Open recommendations | B shown once; A excluded | Test returned movie IDs and rendered cards |
@@ -469,12 +370,12 @@ The final demonstration is local; public hosting is not required. Review every a
 
 | Item | Owner | What remains to resolve |
 |---|---|---|
-| Registration redirect consistency | Kate | The design proposes automatic authenticated access to the dashboard after registration, as requested in the flowchart. The proposal still says register, then sign in. Confirm the preferred behavior and synchronize the proposal before INC-02; do not implement contradictory flows. |
+| Registration redirect consistency | Kate | Resolved in planning: successful registration automatically authenticates the user and redirects to the protected dashboard. Proposal and design are aligned; implementation remains future work. |
 | TMDb setup and policy checks | Kate during implementation | Confirm access, authentication instructions, costs, terms, required attribution, image use, permitted title-snapshot storage and request limits. No values belong in the documents. |
 | API behavior and output formats | Kate during implementation | Confirm rating scale, ALL-genre parameter behavior, response fields and recommendation availability. AC-43 needs separate live evidence. |
 | Runtime versions | Kate during initial build | Choose compatible supported Python/Django versions using official documentation and pin the actual installed dependencies; no toolchain installation is part of this design. |
 | Instructor review | Instructor / Kate | No instructor feedback or approval evidence has been supplied. Record any later requested scope/design changes while preserving IDs. |
-| Diagram display | Kate / design review | Open the final design on GitHub and check all three Mermaid diagrams and tables. Their syntax is written for Mermaid, but actual GitHub rendering has not been verified here. |
+| Diagram display | Design review | All three diagrams are rendered PNGs embedded directly in this document, with SVG and editable Graphviz sources. Local visual inspection is recorded below. Remote GitHub display must still be checked after pushing. |
 | Student explanation and final evidence | Kate | Review the explanation below, supply it in your own words, and later provide actual screenshots, test results, video timestamps and submission evidence. |
 
 ### Student explanation checkpoint
@@ -495,4 +396,8 @@ Django fits because it provides routing, forms, templates, authentication and da
 
 ### Design status
 
-All eleven required design sections now contain a planning draft. This is not a ready-for-build or completed-application claim: registration wording alignment, external-source verification, student review, instructor review and GitHub diagram rendering remain open as listed above. No application features, tests, screenshots, API responses or video evidence have been built or verified by writing this document. Future changes must update proposal/design traceability rather than reuse retired IDs.
+All eleven required design sections now contain a planning draft. This is not a ready-for-build or completed-application claim: external-source verification, student review, instructor review and remote GitHub display review remain open as listed above. Registration wording is aligned and diagrams are rendered locally. No application features, tests, screenshots, API responses or video evidence have been built or verified by writing this document. Future changes must update proposal/design traceability rather than reuse retired IDs.
+
+### Diagram export verification
+
+All three charts are exported as PNG and SVG from the adjacent editable Graphviz `.dot` sources. The document embeds PNGs rather than raw Mermaid code, so chart display does not depend on a Mermaid plugin. Full-size SVG links support zoom without pixelation. All three rendered PNG exports were visually inspected locally at document-scale widths. The self-contained HTML preview embeds all three SVGs, but a full-browser screenshot check did not complete in this environment; this does not establish API access, application behavior, or remote GitHub rendering.

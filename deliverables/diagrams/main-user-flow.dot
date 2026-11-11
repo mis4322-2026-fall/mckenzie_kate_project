@@ -1,0 +1,57 @@
+digraph G {
+ graph [rankdir=TB, bgcolor="white", pad="0.3", nodesep="0.30", ranksep="0.42", fontname="DejaVu Sans", fontsize=20, labelloc=t];
+ node [shape=box, style="rounded,filled", fillcolor="#EFF6FF", color="#2563EB", fontname="DejaVu Sans", fontsize=13, margin="0.16,0.10"];
+ edge [color="#475569", arrowsize=0.7, fontname="DejaVu Sans", fontsize=11];
+
+ label="Movie Finder — Main User Flow\nProposed design";
+ start [label="START — Open Movie Finder", shape=oval, fillcolor="#DBEAFE"];
+ welcome [label="Public Welcome Page"];
+ account [label="Account action?", shape=diamond, style=filled];
+ login [label="Log In"];
+ register [label="Create Account"];
+ validate [label="Django validates information"];
+ valid [label="Valid?", shape=diamond, style=filled];
+ error [label="Show error\nRetry the selected form", fillcolor="#FFF7ED", color="#C2410C"];
+ session [label="Authenticate user\nCreate Django session"];
+ home [label="Protected Dashboard\nPopular movies",fillcolor="#DBEAFE"];
+ choice [label="Choose an action",shape=diamond,style=filled];
+ search [label="Search Movies\nEnter title"];
+ browse [label="Browse Genres\nMatch ALL"];
+ random [label="Surprise Me\nRandom candidate"];
+ watch [label="My Watchlist\nMy entries only"];
+ logout [label="Log Out\nEnd session"];
+ request [label="Django retrieves\nTMDb movies"];
+ found [label="Results available?",shape=diamond,style=filled];
+ missing [label="Error / no results\nRetry or go home",fillcolor="#FFF7ED",color="#C2410C"];
+ results [label="Show results\nSelect a movie"];
+ details [label="Movie Details\nPoster, title, genres,\nrating, description"];
+ next [label="Choose next action",shape=diamond,style=filled];
+ save [label="Save to watchlist\nNo duplicate saves"];
+ related [label="Recommendations\nContinue results flow"];
+ again [label="Try Again\nRepeat random pick"];
+ back [label="Return home",shape=oval];
+ wa [label="Saved movie action?",shape=diamond,style=filled];
+ open [label="Open Movie Details",shape=oval];
+ remove [label="Remove my entry\nShow updated list"];
+ end [label="Welcome / login\nSign-in required again",shape=oval];
+ start -> welcome -> account;
+ account -> login [label="Log in"];
+ account -> register [label="Create"];
+ login -> validate; register -> validate;
+ validate -> valid;
+ valid -> error [label="No"];
+ valid -> session [label="Yes"];
+ session -> home -> choice;
+ {rank=same; search; browse; random; watch; logout;}
+ choice -> search; choice -> browse; choice -> random; choice -> watch; choice -> logout;
+ search -> request; browse -> request; random -> request;
+ request -> found;
+ found -> missing [label="No"];
+ found -> results [label="Yes"];
+ results -> details -> next;
+ next -> save; next -> related; next -> again; next -> back;
+ watch -> wa;
+ wa -> open [label="Open"];
+ wa -> remove [label="Remove"];
+ logout -> end;
+}

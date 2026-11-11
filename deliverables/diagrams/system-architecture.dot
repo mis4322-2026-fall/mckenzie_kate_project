@@ -1,0 +1,18 @@
+digraph G {
+ graph [rankdir=TB, bgcolor="white", pad="0.3", nodesep="0.30", ranksep="0.42", fontname="DejaVu Sans", fontsize=20, labelloc=t];
+ node [shape=box, style="rounded,filled", fillcolor="#EFF6FF", color="#2563EB", fontname="DejaVu Sans", fontsize=13, margin="0.16,0.10"];
+ edge [color="#475569", arrowsize=0.7, fontname="DejaVu Sans", fontsize=11];
+
+ label="Movie Finder — System Architecture\nProposed design";
+ browser [label="BROWSER\nHTML, CSS and Django templates",fillcolor="#DBEAFE"];
+ django [label="DJANGO BACKEND\nURLs → Views → Forms\nAuthentication and session checks",fillcolor="#DCFCE7",color="#15803D"];
+ tmdb [label="TMDb API\nPopular movies, search, genres, details,\nratings, recommendations and poster references",fillcolor="#F3E8FF",color="#7E22CE"];
+ db [label="SQLite DATABASE\nUsers, sessions, personal watchlist entries\nSaved TMDb IDs and title snapshots",shape=cylinder,style=filled,fillcolor="#FFF7ED",color="#C2410C"];
+ browser -> django [label="Page / form requests"];
+ django -> browser [label="HTML / messages"];
+ django -> tmdb [label="API requests"];
+ tmdb -> django [label="Movie data / errors"];
+ django -> db [label="Account / watchlist queries"];
+ db -> django [label="Local saved records"];
+ {rank=same; tmdb; db;}
+}

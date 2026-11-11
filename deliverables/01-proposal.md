@@ -30,7 +30,7 @@ Title search, registration, and Surprise Me were already added in earlier revisi
 
 ## 3. Main user workflow
 1. Open the public welcome page. New users can create an account; returning users can log in.
-2. Register with a unique username and a confirmed password, then sign in. Invalid registration or login displays helpful errors.
+2. Register with a unique username and a confirmed password. Successful registration automatically authenticates the user and redirects to the protected dashboard; no separate login is required. Invalid registration or login displays helpful errors.
 3. Successful login opens the protected dashboard, showing popular movies, a search bar, genre browsing, a Surprise Me button, and watchlist navigation.
 4. Enter a title to receive matching movies from TMDb, or choose one or more genres to browse movies matching all selected genres.
 5. Open a movie's details page to view its poster, title, genres, numeric rating, and description. Choose related recommendations supplied by TMDb when available.
@@ -47,7 +47,7 @@ Title search, registration, and Surprise Me were already added in earlier revisi
 | FR-04 | Users receive understandable messages for invalid inputs, empty searches/results, missing movies, unavailable information, and TMDb failures, with a way to retry or navigate back. | Must |
 | FR-06 | Signed-in users can save movies, view their private watchlist, and remove their own saved entries. Saved entries persist in SQLite, and duplicate saves do not create duplicate entries. | Must |
 | FR-07 | TV-show discovery and additional interface polish may be considered after the required movie application is complete. | Later |
-| FR-08 | New users can register with a unique username and a password entered identically twice. Invalid registration shows helpful errors; a successful account can sign in through Django authentication. | Must |
+| FR-08 | New users can register with a unique username and a password entered identically twice. Invalid registration shows helpful errors; successful registration automatically authenticates the user through Django and redirects to the protected dashboard. | Must |
 | FR-09 | Successful login opens a dashboard displaying TMDb popular movies, a title-search bar, genre browsing, Surprise Me, and watchlist navigation. Users can return to the dashboard from application pages. | Must |
 | FR-10 | Users can search TMDb by title, choose the intended movie from matches, and request related movies through an available TMDb movie-based recommendation feature. Recommendations exclude the selected movie and duplicate IDs. | Must |
 | FR-11 | Users can click Surprise Me to receive one randomly selected TMDb candidate movie and click Try Again to request another selection. Empty candidate sets and failures display a helpful message. | Must |
@@ -95,7 +95,7 @@ These are planned checks, not execution results. Controlled fictional API respon
 | AC-04 | FR-01 | Given a signed-in user, when the user submits CSRF-protected POST logout and revisits a protected page | The session no longer grants access and login is required. |
 | AC-07 | FR-03 | Given fictional movie B in a details response, when its card is selected from search, browse, random discovery, or watchlist | A separate details page displays B's title, genres, rating with scale, description, and poster or placeholder. Runtime is not required. |
 | AC-08 | FR-04 | Given an empty TMDb search or browse response, when results are displayed | A clear no-results message appears with a way to change the search or return to the dashboard. |
-| AC-15 | FR-08 | Given an unused username and an acceptable password confirmed twice, when registration is submitted | One account is created and can sign in; no credentials are saved in documentation. |
+| AC-15 | FR-08 | Given an unused username and an acceptable password confirmed twice, when registration is submitted | One account is created, the user is automatically authenticated and redirected to the protected dashboard, and no credentials are saved in documentation. |
 | AC-16 | FR-08 | When registration uses an existing username, mismatched passwords, or a password rejected by Django validators | Clear errors appear and no new account is created. |
 | AC-17 | FR-09 | Given a signed-in user and a controlled popular-movie response containing A and B, when the dashboard opens | A and B are displayed; search, genre browsing, Surprise Me, and My Watchlist are reachable and have a return-home path. |
 | AC-19 | FR-10 | Given a recommendation response containing selected movie A and duplicate copies of B, when recommendations are displayed | B appears once and A is excluded. |
