@@ -33,8 +33,6 @@ Proposed architecture, not an implemented system.
 
 ![Movie Finder — System Architecture](diagrams/system-architecture.png)
 
-[Full-size SVG](diagrams/system-architecture.svg) · [Editable Graphviz source](diagrams/system-architecture.dot)
-
 TMDb supplies movie information, numeric ratings, popularity, and available movie-based recommendations. Posters load from its supplied image references. SQLite stores accounts, sessions, and saved movie references with a minimal title snapshot; it is not a local movie discovery catalog. During an API outage, saved titles remain readable, but current details and discovery may be unavailable. Django keeps API credentials server-side and converts errors into helpful messages. API access, current terms, attribution, and endpoint behavior remain unverified.
 
 ## 3. Data model
@@ -45,7 +43,6 @@ Proposed persistent entities. User is Django's built-in user model; the diagram 
 
 ![Movie Finder — Data Model (ERD)](diagrams/data-model.png)
 
-[Full-size SVG](diagrams/data-model.svg) · [Editable Graphviz source](diagrams/data-model.dot)
 
 | Entity | Field | Django field type | Required / Default | Validation | Relationship / Deletion rule |
 |---|---|---|---|---|---|
@@ -99,7 +96,6 @@ All steps are proposed. The rendered chart flows downward; short continuation no
 
 ![Movie Finder — Main User Flow](diagrams/main-user-flow.png)
 
-[Full-size SVG](diagrams/main-user-flow.svg) · [Editable Graphviz source](diagrams/main-user-flow.dot)
 
 **Account flow:** Successful registration automatically authenticates the new user and redirects to the protected dashboard. Valid login does the same. Invalid registration or login shows errors and allows retry without granting access. The proposal and design now use this same rule.
 
