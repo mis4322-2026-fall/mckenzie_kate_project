@@ -10,17 +10,62 @@ Retain active FR-01, FR-03, FR-04, FR-06, FR-08, FR-09, FR-10, FR-11, FR-12, FR-
 
 ## 2. System context
 
-![Movie Finder — System Architecture](diagrams/system-architecture.png)
+### Movie Finder — System Architecture
 
-[Full-size diagram](diagrams/system-architecture.svg) · [Editable source](diagrams/system-architecture.dot)
+```mermaid
+flowchart LR
+    Browser["Browser<br/>HTML, CSS and Django templates"]
+    Django["Django backend<br/>URLs, views and forms<br/>Authentication and session checks"]
+    TMDb["TMDb API<br/>Popular movies, search, genres, details,<br/>ratings, recommendations and poster references"]
+    SQLite[("SQLite database<br/>Users, sessions and private watchlists<br/>Saved TMDb IDs and title snapshots")]
+
+    Browser -->|"Page and form requests"| Django
+    Django -->|"Rendered HTML and messages"| Browser
+    Django -->|"Authenticated API requests"| TMDb
+    TMDb -->|"Movie data or API errors"| Django
+    Django -->|"Account and watchlist queries"| SQLite
+    SQLite -->|"Account, session and saved-entry records"| Django
+
+    classDef frontend fill:#eff6ff,stroke:#2563eb,color:#172554;
+    classDef backend fill:#ecfdf5,stroke:#15803d,color:#14532d;
+    classDef external fill:#faf5ff,stroke:#7e22ce,color:#581c87;
+    classDef database fill:#fff7ed,stroke:#c2410c,color:#7c2d12;
+    class Browser frontend;
+    class Django backend;
+    class TMDb external;
+    class SQLite database;
+```
 
 Django checks requests/login and returns HTML/CSS pages. TMDb supplies movies and posters; SQLite stores accounts, sessions and private watchlists. Saved titles remain available during API outages, but discovery may not.
 
 ## 3. Data model
 
-![Movie Finder — Data Model (ERD)](diagrams/data-model.png)
+### Movie Finder — Data Model (ERD)
 
-[Full-size diagram](diagrams/data-model.svg) · [Editable source](diagrams/data-model.dot)
+```mermaid
+erDiagram
+    USER ||--o{ WATCHLIST_ENTRY : owns
+
+    USER {
+        int id PK "Django account ID"
+        string username UK "Unique username"
+        string password "Django-managed password hash"
+        boolean is_active
+        boolean is_staff
+        boolean is_superuser
+    }
+
+    WATCHLIST_ENTRY {
+        int id PK "Saved-entry ID"
+        int user_id FK "USER.id; owner; CASCADE on user deletion"
+        int tmdb_movie_id "Positive external ID; unique together with user_id"
+        string title_snapshot "Required; maximum 500 characters"
+        datetime saved_at "Automatic saved timestamp"
+    }
+
+    %% Each entry belongs to exactly one user; a user can have zero or many entries.
+    %% Database constraint: UNIQUE(user_id, tmdb_movie_id), not uniqueness of either field alone.
+```
 
 One user owns many saved entries; each entry belongs to one user. Movies remain in TMDb, not a local movie table.
 
@@ -61,9 +106,93 @@ Forms have clear labels/errors, templates display text safely, and pages provide
 
 ## 5. Main user flow
 
-![Movie Finder — Main User Flow](diagrams/main-user-flow.png)
+### Movie Finder — Main User Flow
 
-[Full-size diagram](diagrams/main-user-flow.svg) · [Editable source](diagrams/main-user-flow.dot)
+```mermaid
+flowchart TD
+    subgraph Access["1. Account access"]
+        WF_start(["START — Open Movie Finder"])
+        WF_welcome["Public Welcome Page"]
+        WF_account{"Log in or create account?"}
+        WF_login["Log In"]
+        WF_register["Create Account"]
+        WF_validate["Django validates submitted information"]
+        WF_valid{"Information valid?"}
+        WF_error["Show form error<br/>Retry selected account form"]
+        WF_session["Authenticate user<br/>Create Django session"]
+
+        WF_start --> WF_welcome --> WF_account
+        WF_account -->|"Log in"| WF_login
+        WF_account -->|"Create account"| WF_register
+        WF_login --> WF_validate
+        WF_register --> WF_validate
+        WF_validate --> WF_valid
+        WF_valid -->|"No"| WF_error
+        WF_valid -->|"Yes"| WF_session
+    end
+
+    WF_home["Protected dashboard<br/>Popular movies"]
+    WF_choice{"Choose an action"}
+    WF_session --> WF_home --> WF_choice
+
+    subgraph Discovery["2. Movie discovery and details"]
+        WF_search["Search Movies<br/>Enter title"]
+        WF_browse["Browse Genres<br/>Match ALL selected genres"]
+        WF_random["Surprise Me<br/>Random candidate"]
+        WF_request["Django retrieves movies from TMDb"]
+        WF_found{"Request succeeds<br/>and results available?"}
+        WF_missing["Helpful error or no-results message<br/>Retry or return home"]
+        WF_results["Show results<br/>Select a movie"]
+        WF_details["Movie Details<br/>Poster or placeholder, title,<br/>genres, rating and description"]
+        WF_next{"Choose next action"}
+        WF_save["Save to my watchlist<br/>Prevent duplicate saves"]
+        WF_related["TMDb recommendations<br/>Continue results and details flow"]
+        WF_again["Try Again<br/>Repeat random selection"]
+        WF_back(["Return to dashboard"])
+
+        WF_search --> WF_request
+        WF_browse --> WF_request
+        WF_random --> WF_request
+        WF_request --> WF_found
+        WF_found -->|"No"| WF_missing
+        WF_found -->|"Yes"| WF_results
+        WF_results --> WF_details --> WF_next
+        WF_next -->|"Save movie"| WF_save
+        WF_next -->|"Related movies"| WF_related
+        WF_next -->|"Another random pick"| WF_again
+        WF_next -->|"Home"| WF_back
+    end
+
+    subgraph Watchlist["3. Private watchlist"]
+        WF_watch["My Watchlist<br/>Only my SQLite entries"]
+        WF_wa{"Choose saved-movie action"}
+        WF_open(["Open Movie Details"])
+        WF_remove["Remove only my saved entry<br/>Show updated or empty list"]
+        WF_watch --> WF_wa
+        WF_wa -->|"Open"| WF_open
+        WF_wa -->|"Remove"| WF_remove
+    end
+
+    WF_logout["Log Out<br/>End Django session"]
+    WF_end(["Public welcome or login<br/>Protected access requires sign-in again"])
+    WF_choice -->|"Title search"| WF_search
+    WF_choice -->|"Genre browsing"| WF_browse
+    WF_choice -->|"Random discovery"| WF_random
+    WF_choice -->|"My Watchlist"| WF_watch
+    WF_choice -->|"Log out"| WF_logout
+    WF_logout --> WF_end
+
+    %% Retry, home, details, recommendations and Try Again labels are continuation points.
+    %% They avoid long return arrows; every protected request still checks login and ownership.
+    classDef process fill:#eff6ff,stroke:#2563eb,color:#172554;
+    classDef decision fill:#f8fafc,stroke:#475569,color:#0f172a;
+    classDef error fill:#fff7ed,stroke:#c2410c,color:#7c2d12;
+    classDef key fill:#ecfdf5,stroke:#15803d,color:#14532d;
+    class WF_login,WF_register,WF_validate,WF_welcome,WF_search,WF_browse,WF_random,WF_request,WF_results,WF_details,WF_save,WF_related,WF_again,WF_watch,WF_remove,WF_logout process;
+    class WF_account,WF_valid,WF_choice,WF_found,WF_next,WF_wa decision;
+    class WF_error,WF_missing error;
+    class WF_start,WF_session,WF_home,WF_end,WF_open,WF_back key;
+```
 
 Login/registration leads to the dashboard. Users discover movies, open details, save/remove entries or log out. Error paths allow retry; rounded continuation nodes avoid crossing return arrows.
 
