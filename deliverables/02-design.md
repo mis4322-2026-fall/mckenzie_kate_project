@@ -12,7 +12,7 @@ Retain active FR-01, FR-03, FR-04, FR-06, FR-08, FR-09, FR-10, FR-11, FR-12, FR-
 
 ![Movie Finder — System Architecture](diagrams/system-architecture.png)
 
-[Full-size SVG](diagrams/system-architecture.svg) · [Editable Graphviz source](diagrams/system-architecture.dot)
+[Full-size diagram](diagrams/system-architecture.svg) · [Editable source](diagrams/system-architecture.dot)
 
 Django checks requests/login and returns HTML/CSS pages. TMDb supplies movies and posters; SQLite stores accounts, sessions and private watchlists. Saved titles remain available during API outages, but discovery may not.
 
@@ -20,7 +20,9 @@ Django checks requests/login and returns HTML/CSS pages. TMDb supplies movies an
 
 ![Movie Finder — Data Model (ERD)](diagrams/data-model.png)
 
-[Full-size SVG](diagrams/data-model.svg) · [Editable Graphviz source](diagrams/data-model.dot)
+[Full-size diagram](diagrams/data-model.svg) · [Editable source](diagrams/data-model.dot)
+
+One user owns many saved entries; each entry belongs to one user. Movies remain in TMDb, not a local movie table.
 
 | Entity | Field | Django field type | Required / Default | Validation | Relationship / Deletion rule |
 |---|---|---|---|---|---|
@@ -61,7 +63,7 @@ Forms have clear labels/errors, templates display text safely, and pages provide
 
 ![Movie Finder — Main User Flow](diagrams/main-user-flow.png)
 
-[Full-size SVG](diagrams/main-user-flow.svg) · [Editable Graphviz source](diagrams/main-user-flow.dot)
+[Full-size diagram](diagrams/main-user-flow.svg) · [Editable source](diagrams/main-user-flow.dot)
 
 Login/registration leads to the dashboard. Users discover movies, open details, save/remove entries or log out. Error paths allow retry; rounded continuation nodes avoid crossing return arrows.
 
