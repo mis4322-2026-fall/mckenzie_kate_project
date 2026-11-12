@@ -2,206 +2,165 @@
 
 ## 1. Design baseline
 
-- **Project:** Movie Finder — Kate McKenzie
-- **Proposal:** [01-proposal.md](01-proposal.md), revised November 11, 2026
-- **Status:** Planning draft. No application feature, test, screenshot or API connection is claimed complete.
-- **Review:** No instructor feedback has been supplied. Student review and API verification remain open.
+**Project:** Movie Finder — Kate McKenzie. **Baseline:** [01-proposal.md](01-proposal.md), November 11, 2026. **Status:** Planning draft; nothing is claimed built or tested. Instructor feedback has not been supplied.
 
-Movie Finder helps users choose something to watch through title search, genre browsing, TMDb recommendations and Surprise Me. Users create an account or log in, explore movies, and keep a private watchlist.
+Movie Finder helps users choose movies through search, genre browsing, recommendations and random discovery, with private watchlists.
 
-**Scope changes for the November 11 submission:** TMDb replaces the original CSV and local movie filtering. SQLite now stores accounts, sessions and saved movie references. Genre browsing matches ALL selected genres; rating, runtime and year filters are removed. Registration, popular movies, separate detail pages, posters and private watchlists are required. Trailers, streaming availability, personal ratings, watched status and custom/personalized recommendations are excluded.
+**Scope changes:** TMDb replaces the CSV/local movie catalog. SQLite stores accounts, sessions and saved references. Multi-genre browsing requires ALL selected genres. Popular movies, registration, details, posters and private watchlists are required. Rating/runtime/year filters, runtime display, trailers, streaming availability, personal ratings, watched status and custom/personalized recommendations are excluded.
 
-Existing IDs retain their meanings from the revised proposal. FR-02 is retired and replaced by FR-16 for multi-genre browsing. FR-05 remains retired; FR-13–FR-15 are retired with the removed enhancements. FR-06 (watchlist) and FR-12 (posters) are now Must; FR-17 defines the public welcome page. FR-07 remains Later for TV shows and interface polish. No retired requirement or acceptance-criterion ID is reused. Open issues are collected in section 11.
+**IDs:** FR-01, FR-03, FR-04, FR-08–FR-11 retain their revised proposal meanings. FR-06 and FR-12 are now Must. FR-16 replaces retired FR-02; FR-17 adds public welcome access. FR-05 and FR-13–FR-15 remain retired. FR-07 remains Later for TV shows/interface polish. No retired IDs are reused.
 
 ## 2. System context
-
-### Movie Finder — System Architecture
 
 ![Movie Finder — System Architecture](diagrams/system-architecture.png)
 
 [Full-size SVG](diagrams/system-architecture.svg) · [Editable source](diagrams/system-architecture.dot)
 
-The browser displays Django templates, HTML and CSS. Django checks login, validates forms, requests movie information from TMDb and returns pages. TMDb supplies popular movies, search results, genres, ratings, details, recommendations and poster references. SQLite stores users, sessions and private watchlist entries. It is not a local movie catalog. During an API outage, saved titles remain readable, but discovery and current details may be unavailable.
+The browser displays HTML/CSS and Django templates. Django validates requests and checks login. TMDb supplies movie information and poster references; SQLite stores accounts, sessions and watchlists. Saved titles remain readable during an API outage, but discovery and current details may be unavailable.
 
 ## 3. Data model
-
-### Movie Finder — Data Model (ERD)
 
 ![Movie Finder — Data Model (ERD)](diagrams/data-model.png)
 
 [Full-size SVG](diagrams/data-model.svg) · [Editable source](diagrams/data-model.dot)
 
-Use Django's built-in User model and one WatchlistEntry model. A user owns zero or more entries; every entry belongs to one user. TMDb movie IDs identify external movies, so a local Movie table is not required. Standard session tables are omitted from the diagram for readability.
+Use Django's built-in User and one WatchlistEntry model. One user owns many entries; each entry belongs to one user. TMDb IDs identify external movies, so no local Movie table is needed. Standard Django session tables are omitted from the ERD.
 
 | Entity | Field | Django field type | Required / Default | Validation | Relationship / Deletion rule |
 |---|---|---|---|---|---|
-| User | id | Built-in primary key | Automatic | Unique | One user owns many saved entries |
-| User | username | Built-in CharField | Required | Unique; Django username rules | Account identity |
-| User | password | Built-in CharField | Required for password login | Django stores a hash and validates passwords | Never store plain-text passwords |
-| User | is_active, is_staff, is_superuser | Built-in BooleanFields | Django defaults | Built-in account/admin checks | Admin permissions are separate from ordinary access |
-| WatchlistEntry | id | BigAutoField | Automatic | Unique | Saved-entry identifier |
-| WatchlistEntry | user | ForeignKey to AUTH_USER_MODEL | Required | Set from the signed-in user | CASCADE: deleting a user removes their entries |
-| WatchlistEntry | tmdb_movie_id | PositiveIntegerField | Required | Valid movie ID; unique with user | External reference, not a local movie foreign key |
-| WatchlistEntry | title_snapshot | CharField(500) | Required | Nonblank; validate length | Keeps saved titles readable during outages |
-| WatchlistEntry | saved_at | DateTimeField(auto_now_add=True) | Automatic | Server timestamp | Removed with the entry |
+| User | id | Built-in primary key | Automatic | Unique | Owns saved entries |
+| User | username | Built-in CharField | Required | Unique; Django rules | Account identity |
+| User | password | Built-in CharField | Required | Django-managed hash/validators | Never plain text |
+| User | is_active, is_staff, is_superuser | BooleanFields | Django defaults | Built-in permission checks | Admin access separate |
+| WatchlistEntry | id | BigAutoField | Automatic | Unique | Entry identifier |
+| WatchlistEntry | user | ForeignKey to AUTH_USER_MODEL | Required | Signed-in user | CASCADE on user deletion |
+| WatchlistEntry | tmdb_movie_id | PositiveIntegerField | Required | Valid ID; unique with user | External movie reference |
+| WatchlistEntry | title_snapshot | CharField(500) | Required | Nonblank; length limit | Readable during outages |
+| WatchlistEntry | saved_at | DateTimeField | auto_now_add=True | Server timestamp | Removed with entry |
 
-A unique `(user, tmdb_movie_id)` pair prevents duplicate saves. Removing an entry does not delete the account, TMDb movie or another user's entry. Ownership rules are in section 6.
+The database enforces a unique `(user, tmdb_movie_id)` pair. Removing an entry affects neither another user's saves nor the TMDb movie.
 
 ## 4. Pages and actions
 
-These are proposed application URLs. Welcome, registration and login are public; all other routes require login. GET displays information; POST submits account changes or watchlist changes.
+Only welcome, registration and login are public. All other routes require login. GET reads information; account and saved-entry changes use CSRF-protected POST forms.
 
 | Requirement ID | Page / URL | User action / HTTP method | Input and validation | Result / Template |
 |---|---|---|---|---|
-| FR-17 | Welcome `/` | GET | None | `welcome.html`: introduction and account links |
-| FR-08, FR-04 | Register `/accounts/register/` | GET form; POST account | Unique username; matching valid passwords | `registration/register.html`: errors, or automatic login and redirect to dashboard |
-| FR-01, FR-04, FR-09 | Login `/accounts/login/` | GET form; POST login | Django checks credentials | `registration/login.html`: error or dashboard redirect |
-| FR-01 | Logout `/accounts/logout/` | POST only | Session and CSRF token | End session; redirect to welcome |
-| FR-09, FR-12, FR-04 | Dashboard `/dashboard/` | GET | Request popular movies | `dashboard.html`: popular cards, search, genre browsing, Surprise Me and watchlist links |
-| FR-10, FR-12, FR-04 | Search `/movies/search/?q=...` | GET | Trim title; require nonblank submitted text, maximum 200 characters | `movies/search.html`: form, selectable matches or helpful message |
-| FR-16, FR-12, FR-04 | Browse `/movies/browse/?genre=...&genre=...` | GET | Show choices initially; require valid selected genre IDs on submission; match ALL | `movies/browse.html`: matching cards or validation/empty/error message |
-| FR-11, FR-03, FR-12, FR-04 | Surprise Me `/movies/surprise/` | GET; Try Again repeats request | Valid bounded candidate set | Redirect to selected movie details with Try Again control; otherwise `movies/surprise.html` message |
-| FR-03, FR-12, FR-04 | Details `/movies/<tmdb_id>/` | GET | Positive TMDb ID; handle missing movie/fields | `movies/detail.html`: required information, Save and recommendations controls |
-| FR-10, FR-12, FR-04 | Related movies `/movies/<tmdb_id>/recommendations/` | GET | Valid selected ID; exclude original/duplicate IDs | `movies/recommendations.html`: related cards or message |
-| FR-06, FR-01 | Watchlist `/watchlist/` | GET | Query only the signed-in user's entries | `watchlist/list.html`: saved titles, detail/remove controls or empty state |
-| FR-06, FR-04 | Save `/watchlist/add/` | POST only | CSRF; validate TMDb ID/title server-side; session determines owner; prevent duplicates | Redirect to watchlist with saved/already-saved/error feedback |
-| FR-06, FR-01 | Remove `/watchlist/<entry_id>/remove/` | POST only | CSRF; find entry by ID AND current user | Remove only that entry; redirect to list; unauthorized/missing entry gets generic not-found response |
+| FR-17 | `/` | GET welcome | None | `welcome.html`; account links |
+| FR-08, FR-04 | `/accounts/register/` | GET form; POST register | Unique username; matching valid passwords | `registration/register.html`; errors or automatic login/dashboard |
+| FR-01, FR-04, FR-09 | `/accounts/login/` | GET form; POST login | Django checks credentials | `registration/login.html`; error or dashboard |
+| FR-01 | `/accounts/logout/` | POST logout | Session, CSRF | End session; welcome |
+| FR-09, FR-12, FR-04 | `/dashboard/` | GET popular movies/navigation | Valid API response | `dashboard.html`; cards or message |
+| FR-10, FR-12, FR-04 | `/movies/search/?q=...` | GET title search | Trim; nonblank submission, max 200 characters | `movies/search.html`; matches/message |
+| FR-16, FR-12, FR-04 | `/movies/browse/?genre=...` | GET genre browsing; repeat genre parameter for multiple choices | Valid IDs; at least one on submission; ALL matching | `movies/browse.html`; matches/message |
+| FR-11, FR-03, FR-04, FR-12 | `/movies/surprise/` | GET random movie/Try Again | Valid candidate set | Selected details with Try Again; error uses `movies/surprise.html` |
+| FR-03, FR-12, FR-04 | `/movies/<tmdb_id>/` | GET details | Positive ID; handle missing data | `movies/detail.html`; Save/related controls |
+| FR-10, FR-12, FR-04 | `/movies/<tmdb_id>/recommendations/` | GET related movies | Valid ID; exclude original/duplicates | `movies/recommendations.html` |
+| FR-06, FR-01 | `/watchlist/` | GET saved entries | Current user only | `watchlist/list.html`; titles/detail/remove controls |
+| FR-06, FR-04 | `/watchlist/add/` | POST save | CSRF; server-validated movie ID/title; prevent duplicates | Redirect with saved/error feedback |
+| FR-06, FR-01 | `/watchlist/<entry_id>/remove/` | POST remove | CSRF; entry ID and current owner | Remove own entry; redirect, or generic not-found |
 
-Forms have visible labels and readable errors. Templates escape text. Shared cards use titles and posters/placeholders; details show the full required fields. Protected pages provide dashboard navigation and a logout form. Initial unsubmitted search/browse forms do not show an error. No numeric or year filters are included.
+Use labeled forms, escaped text, shared cards, poster placeholders and return-home links. Initial unsubmitted search/browse forms show choices without errors. No numeric/year filters are included.
 
 ## 5. Main user flow
-
-### Movie Finder — Main User Flow
 
 ![Movie Finder — Main User Flow](diagrams/main-user-flow.png)
 
 [Full-size SVG](diagrams/main-user-flow.svg) · [Editable source](diagrams/main-user-flow.dot)
 
-Valid login or registration creates a session and opens the dashboard. Users choose title search, genre browsing, Surprise Me or My Watchlist. Results lead to details, saving and related movies. Invalid input, empty results and API failures receive helpful messages. Rounded continuation nodes indicate retry, return-home or repeated discovery actions without long crossing arrows. Logout ends access to protected pages.
+Valid registration/login creates a session and opens the dashboard. Discovery leads to results, details and saving. The watchlist supports opening/removing saved movies. Error paths allow retry; rounded continuation nodes avoid crossing return arrows. Logout ends protected access.
 
 ## 6. Access and login
 
 | Role | Allowed actions | Ownership / Access restriction |
 |---|---|---|
-| Visitor | Welcome, registration and login | Cannot access discovery, details or watchlist, including by direct URL |
-| Signed-in user | Dashboard, movie features and personal watchlist | Can view, save or remove only their own saved entries |
-| Active superuser | Django Admin management of users and registered WatchlistEntry models | Separate admin permissions; ordinary application views still show only that signed-in user's entries |
+| Visitor | Welcome, register, login | No discovery/details/watchlist access |
+| Signed-in user | All movie features and own watchlist | Only their entries can be viewed or changed |
+| Active superuser | Django Admin users/registered watchlist models | Separate admin permissions; normal application views remain owner-filtered |
 
-Use Django's built-in user forms, password validation and session authentication. Successful registration automatically authenticates the user and redirects to `/dashboard/`; valid login does the same. Invalid submissions show errors without granting access. Django stores password hashes and manages the session, rather than custom password handling.
+Django's built-in forms validate usernames/passwords, store password hashes and manage sessions. Successful registration automatically signs the user in and opens `/dashboard/`; valid login does the same. Invalid information shows errors without granting access.
 
-Enforce login in every protected view with `login_required` or its class-based equivalent. Set a saved entry's owner from `request.user`, never a submitted user ID. Filter list/removal queries by that user; changing an entry ID must not expose or remove someone else's data. Registration grants no admin permissions.
+Every protected view checks login, including direct URL requests. Watchlist ownership comes from `request.user`, never a submitted user ID. List/removal queries filter by owner. POST/CSRF protections apply to registration, login, logout, saves and removal; GET cannot mutate saved entries. Logout clears the session and returns to welcome; new protected requests require login again.
 
-Registration, login, logout, saving and removal use CSRF-protected POST forms. GET must not change saved entries or log users out. After logout, a new protected-page request requires sign-in again. Account pages remain usable without TMDb.
-
-Create a foundation demonstration account locally with Django's interactive `createsuperuser` command, then ordinary fictional accounts for registration and ownership checks. Keep passwords, tokens, session cookies and the local database out of Git and screenshots. Admin login alone does not satisfy the initial build: it needs a user-facing login and protected application page.
+Create foundation demo credentials locally with interactive `createsuperuser`, then use ordinary fictional accounts for registration/privacy checks. Never commit credentials or the local database. Django Admin alone does not fulfill the required user-facing login and protected-page build.
 
 ## 7. Integrations and configuration
 
 | Dependency / API | Purpose | Official documentation | Environment variable names | Failure / Sample-data fallback |
 |---|---|---|---|---|
-| Python / Django | Backend, forms, authentication, templates and database access | [Python](https://docs.python.org/3/), [Django](https://docs.djangoproject.com/en/stable/) | `DJANGO_SECRET_KEY`; optional local settings `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS` | Select compatible versions and pin them during implementation. Authentication does not depend on TMDb. |
-| SQLite | Accounts, sessions and private saved entries | [Django SQLite notes](https://docs.djangoproject.com/en/stable/ref/databases/#sqlite-notes) | None required for local database path | Apply migrations; preserve existing data. Saved titles work during API outages. |
-| TMDb API and image service | Popular movies, search, genres, details, recommendations and posters | [Getting started](https://developer.themoviedb.org/docs/getting-started), [Authentication](https://developer.themoviedb.org/docs/authentication-application), [Images](https://developer.themoviedb.org/docs/image-basics) | `TMDB_READ_ACCESS_TOKEN` — planned server-side bearer credential | Request timeout and readable service-error messages. Missing posters use a placeholder. Fictional responses support tests, not fake live results. |
+| Python/Django | Backend, templates, forms/authentication | [Python](https://docs.python.org/3/), [Django](https://docs.djangoproject.com/en/stable/) | `DJANGO_SECRET_KEY`; local `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS` if used | Pin compatible versions during build; accounts work without TMDb |
+| SQLite | Accounts, sessions, watchlists | [SQLite notes](https://docs.djangoproject.com/en/stable/ref/databases/#sqlite-notes) | None required | Migrations preserve data; saved titles remain available locally |
+| TMDb API/images | Popular/search/genres/details/recommendations/posters | [API](https://developer.themoviedb.org/docs/getting-started), [Authentication](https://developer.themoviedb.org/docs/authentication-application), [Images](https://developer.themoviedb.org/docs/image-basics) | `TMDB_READ_ACCESS_TOKEN` | Timeout/error messages and poster placeholder; fictional responses for tests only |
 
-The Django server will request popular movies (`/movie/popular`), title matches (`/search/movie`), genres (`/genre/movie/list`), ALL-genre browsing (`/discover/movie`), details (`/movie/{id}`) and recommendations (`/movie/{id}/recommendations`). The planned base is `https://api.themoviedb.org/3`; image configuration supplies poster references. Verify current endpoint behavior, authentication and AND-genre syntax before building the integration.
+Use one server-side API helper with a proposed 10-second timeout. Planned requests cover popular movies, search, genre list, discover with ALL genres, details, recommendations and image configuration. Credentials stay in process environment variables, never browser code or Git. Document local setup; Django does not automatically load `.env` files.
 
-Keep credentials in process environment variables, never browser code, Git or documents. Document their local setup during implementation; Django does not automatically load `.env` files. No secret values are included here. A small shared API helper will validate responses and use a proposed 10-second timeout, with no endless retries or unlimited result-page requests.
-
-Distinguish a successful empty response from a timeout, denied access, rate limit or malformed response. Show a helpful message and retry/home navigation; never expose tokens or raw errors. Missing fields get unavailable labels. Before a new save, validate its movie/title server-side; failed validation must not create an incomplete entry. Open access, cost and attribution checks are listed once in section 11.
+Distinguish empty results from connection/authorization/rate-limit/malformed-response errors. Show helpful messages without raw errors or secrets. Failed movie validation must not create a new saved entry. Access, terms and attribution checks remain open in section 11; no live API access is claimed.
 
 ## 8. Outputs and business rules
 
-Fictional examples: A = Moonlight Picnic (Comedy), B = Garden of Laughs (Comedy, Family), C = Clockwork Harbor (Mystery). These are test examples, not verified TMDb records.
+Fictional examples: A = Moonlight Picnic (Comedy); B = Garden of Laughs (Comedy, Family); C = Clockwork Harbor (Mystery).
 
 | Requirement ID | Output / Rule | Calculation or format | Example |
 |---|---|---|---|
-| FR-09 | Popular dashboard | Use TMDb popular results in supplied order, removing duplicate IDs | A, B, B becomes A, B; popularity is not a personal rating |
-| FR-10 | Title search | Validate text; use TMDb matching and movie IDs, not exact-title assumptions | Two movies with the same title but different IDs remain selectable |
-| FR-16 | ALL-selected-genres browsing | At least one valid genre; every selected genre must be present | Comedy matches A/B; Comedy + Family matches only B |
-| FR-10 | Recommendations | Preserve TMDb order after removing the original movie and repeated IDs | For selected A, response A/B/B/C displays B/C; no custom storyline scoring |
-| FR-11 | Surprise Me and Try Again | Randomly choose one unique valid candidate from a bounded popular response; repeats are allowed | A/B/C each have a 1-in-3 chance within that set, not across the whole TMDb catalog |
-| FR-03, FR-12 | Details and posters | Title, genres, numeric rating with verified scale, description and poster/placeholder | B shows Comedy/Family and its supplied description; missing score is not invented as zero |
-| FR-06 | Save and view | One entry per user/movie pair; owner-only list, newest saved first | Saving B twice creates one entry; another user's list stays private |
-| FR-06 | Remove and persist | Owner-checked POST removes one saved entry; remaining data survives restart | Removing my B does not affect someone else's B or delete TMDb data |
-| FR-04 | Messages | Explain invalid input, unknown movie, empty results, missing fields or unavailable service | An API failure says unavailable, not “no matching movies” |
+| FR-09 | Popular dashboard | TMDb order; remove duplicate IDs; popularity differs from rating | A/B/B displays A/B |
+| FR-10 | Search/recommendations | TMDb title matching; select by ID; related results retain provider order, excluding original/duplicates | For A, related A/B/B/C becomes B/C |
+| FR-16 | ALL genres | At least one valid genre; every selected genre must match | Comedy matches A/B; Comedy + Family matches B |
+| FR-11 | Surprise Me/Try Again | Choose one unique valid candidate from a bounded popular response; repeats allowed | A/B/C each have 1-in-3 chance within that set, not all TMDb |
+| FR-03, FR-12 | Details/posters | Title, genres, rating/verified scale, description, poster/placeholder | Missing rating is labeled unavailable, not invented as zero |
+| FR-06 | Save/view/remove | Unique user/movie pair; private newest-first list; owner-only POST removal; persistence across restart | Saving B twice leaves one entry; removing my B leaves other users' B unchanged |
+| FR-04 | Messages | Helpful invalid-input, empty, missing-field or service-error message | API failure means unavailable, not no matches |
 
-All discovery uses bounded API responses, not a promise to show the entire catalog. A saved title snapshot is not an offline details database. No removed filters, trailer/streaming features, personal ratings or watched-status features are restored.
+Saved title snapshots are not an offline movie catalog. No custom storyline scoring, personal ratings or removed features are restored.
 
 ## 9. Build increments
 
-Increment IDs describe build steps, not course deliverable numbers. Existing INC-01–INC-06 are preserved. Verify each outcome before continuing; all work below is planned.
+All six existing increment IDs remain. Each step must be demonstrated and checked before continuing.
 
 | Increment ID | Demonstrable outcome | Requirement IDs | Data / Pages needed | Acceptance criterion IDs |
 |---|---|---|---|---|
-| INC-01 | Runnable Django/SQLite authentication foundation before movie features | FR-01, FR-17; foundation of FR-09 | Migrations, welcome, login, protected dashboard shell and POST logout; local demonstration account | AC-02, AC-04, AC-42; login/access portions of AC-01 and AC-03 |
-| INC-02 | Registration with automatic login and usable account navigation | FR-08, FR-01; navigation of FR-09 | Registration form/template, password validation, session and shared layout | AC-15, AC-16; account portion of AC-01 |
-| INC-03 | Popular movies, title search, details and posters through TMDb | FR-09, FR-10, FR-03, FR-12, FR-04, FR-01 | API helper, dashboard/search/detail templates and placeholder | AC-01, AC-07 search portion, AC-08 search portion, AC-20, AC-23, AC-28, AC-41; relevant portions of AC-17, AC-40, AC-43 |
-| INC-04 | ALL-genre browsing and TMDb recommendations | FR-16, FR-10, FR-03, FR-12, FR-04, FR-01 | Browse/recommendation forms and results; reuse details | AC-19, AC-21, AC-33, AC-34, AC-35, AC-36; browse/API portions of AC-07, AC-08, AC-40, AC-43 |
-| INC-05 | Surprise Me, Try Again and empty-candidate handling | FR-11, FR-03, FR-04, FR-01 | Random view using popular candidates; existing details | AC-24, AC-25, AC-26, AC-27; random portions of AC-07 and AC-40 |
-| INC-06 | Private persistent watchlists and final navigation checks | FR-06, FR-01, FR-03, FR-04, FR-09 | WatchlistEntry migration, list/save/remove pages, admin registration, two accounts | AC-37, AC-38, AC-39; complete AC-01, AC-03, AC-07, AC-17, AC-40 and full live AC-43 |
+| INC-01 | Django/SQLite authentication foundation | FR-01, FR-17; foundation FR-09 | Migrations, welcome/login, protected dashboard shell, POST logout | AC-02, AC-04, AC-42; foundation portions AC-01, AC-03 |
+| INC-02 | Registration with automatic login | FR-08, FR-01, FR-09 | Registration form, session/shared layout | AC-15, AC-16; account portion AC-01 |
+| INC-03 | Popular/search/details/posters | FR-09, FR-10, FR-03, FR-12, FR-04, FR-01 | API helper, dashboard/search/details, placeholder | AC-01, AC-20, AC-23, AC-28, AC-41; relevant portions AC-07, AC-08, AC-17, AC-40, AC-43 |
+| INC-04 | ALL-genre browse/recommendations | FR-16, FR-10, FR-03, FR-12, FR-04, FR-01 | Browse/related pages; reused details | AC-19, AC-21, AC-33, AC-34, AC-35, AC-36; relevant portions AC-07, AC-08, AC-40, AC-43 |
+| INC-05 | Surprise Me/Try Again | FR-11, FR-03, FR-04, FR-01 | Random selection, details/retry | AC-24, AC-25, AC-26, AC-27; random portions AC-07, AC-40 |
+| INC-06 | Private persistent watchlists | FR-06, FR-01, FR-03, FR-04, FR-09 | Model/migration, save/list/remove, two accounts | AC-37, AC-38, AC-39; finish AC-01, AC-03, AC-07, AC-17, AC-40, AC-43 |
 
-**November 18 initial build:** Complete INC-01 and verify successful/invalid login, authenticated access, anonymous denial/redirect and logout ending access. Plan three screenshots: sign-in, the protected page after login, and restricted access after logout. Popular movies and later protected routes are not yet verified by foundation-only checks. Record actual results in the future bootstrap report/build log; no screenshots exist from this design work.
+**November 18 initial build — INC-01:** Before movie features, produce a runnable foundation proving valid login, invalid-login rejection, protected-page access, anonymous denial/redirect and logout ending access. Capture three screenshots: sign-in page, protected page after login, and restricted access after logout. Admin login alone is insufficient. Full popular-dashboard and later-route criteria remain pending until built.
 
-**Toward the December 7 video:** Target INC-02/03 for November 19–22, INC-04 for November 23–27, INC-05 for November 28–30, and INC-06 for December 1–3. Reserve December 4–7 for defects, verification and recording. These are proposed work windows, not completed milestones. Verify API prerequisites before INC-03; local account/database work can proceed independently.
+**Before December 7:** Target registration/API search by November 22, browsing/recommendations by November 27, random selection by November 30 and watchlists by December 3. Reserve December 4–7 for fixes, verification and video. API readiness is needed before INC-03; local authentication work can proceed independently. Dates are planned, not completed milestones.
 
 ## 10. Verification and delivery plan
 
-All checks are planned and unrun. Use Django tests with fictional accounts and controlled API responses, browser checks for visible behavior, and a separate live TMDb check. Keep actual pass/fail/blocked/unrun results in the build log; fictional responses do not prove live access.
+All checks are planned and unrun. Use fictional accounts/responses for repeatable Django tests, browser checks for navigation/images, and a separate live API check. Preserve actual pass/fail/blocked results in the build log.
 
 | Criterion ID | Sample input / Setup | Action | Expected result | Verification method |
 |---|---|---|---|---|
-| AC-01, AC-02, AC-03, AC-04, AC-27, AC-42 | Valid/invalid accounts and signed-out visitor | Log in, request every protected route directly, log out, revisit; open welcome | Correct dashboard access; invalid/anonymous requests denied; logout ends access; welcome public | Authentication/access tests and browser sequence; full dashboard checked after movie features |
-| AC-15, AC-16 | Unique/duplicate username, valid/mismatched/rejected passwords | Register | Valid account automatically authenticated and redirected; invalid forms create no account | Form, account-count and session tests; browser registration |
-| AC-07, AC-17, AC-28, AC-41 | Popular A/B; movie details; missing fields/poster/unknown ID | Navigate dashboard and details from all discovery/watchlist paths | Required fields, working navigation, placeholders and honest missing-data messages | Template/view tests and browser image-failure/navigation checks |
-| AC-08, AC-20, AC-21 | Blank search, empty search/browse/recommendation responses | Search, browse, request related movies | Appropriate input/empty messages; no unnecessary API call for invalid input; details remain accessible | Mocked form/view tests and browser empty states |
-| AC-19, AC-23, AC-36 | Duplicate-title IDs and recommendation A/B/B for selected A | Select a match and request related movies | Selected ID used; B appears once and A excluded; provider recommendations used | Mocked request/result checks and browser search-to-recommendations sequence |
-| AC-24, AC-25, AC-26 | Candidate set A/B/C, one candidate, empty candidates | Surprise Me and Try Again | One valid candidate or empty message; fresh request; repeats allowed | Control random choice in tests rather than rely on chance; browser retry check |
-| AC-33, AC-34, AC-35 | Comedy, Comedy + Family, empty/invalid IDs | Browse each selection | A/B for Comedy; only B for both genres; invalid selection rejected before request | Form/request tests using fictional responses; confirm live AND semantics separately |
-| AC-37, AC-38, AC-39 | Two fictional users independently save B | Save twice, restart, view each list, attempt cross-user removal, remove own entry, try GET mutation | One persistent save per user/movie; privacy enforced; only own entry removed; GET cannot mutate | Database/ownership tests with CSRF checks and manual same-database restart |
-| AC-40 | Timeout, authorization error, rate limit or malformed response; saved title exists | Use affected movie features and then watchlist | Helpful error without token/traceback; saved titles still readable | Mocked failure tests; browser check with clearly labeled simulated failure |
-| AC-43 | Securely configured, permitted TMDb access | Live popular/search/detail/recommendation/ALL-genre requests | Real data or honest empty states; documented endpoint behavior and attribution | Separate live integration checklist; no live success claimed yet |
+| AC-01, AC-02, AC-03, AC-04, AC-27, AC-42 | Valid/invalid accounts; anonymous visitor | Login, direct protected URLs, logout/revisit, welcome | Correct access; logout ends session; welcome public | Access tests/browser sequence; full dashboard checked later |
+| AC-15, AC-16 | Valid/duplicate username; matching/mismatched/rejected passwords | Register | Automatic authenticated dashboard or errors/no account | Form/session tests; browser |
+| AC-07, AC-17, AC-28, AC-41 | Popular/details responses; missing poster/fields/ID | Navigate all detail entry paths | Required fields, navigation, placeholders/honest messages | View/template tests; browser image-failure check |
+| AC-08, AC-20, AC-21 | Blank/unknown search; empty browse/related results | Submit requests | Validation/empty messages; details remain usable | Mocked form/view tests |
+| AC-19, AC-23, AC-36 | Duplicate titles/IDs; related A/B/B for A | Select movie and recommendations | Correct selected ID; B once; A excluded | Mocked requests/results; browser |
+| AC-24, AC-25, AC-26 | A/B/C, one or no candidates | Surprise Me/Try Again | One valid result or message; repeats allowed | Controlled random-choice tests; browser |
+| AC-33, AC-34, AC-35 | Comedy; Comedy + Family; empty/invalid genre IDs | Browse | A/B; only B; invalid input rejected before API call | Mocked parameter/result tests; live semantics separately |
+| AC-37, AC-38, AC-39 | Two users save B | Save twice, restart, cross-user access/removal, own removal, GET mutation | Unique persistent saves; privacy; only own entry removed; GET cannot mutate | Database/CSRF/ownership tests; restart check |
+| AC-40 | Timeout, denied access, rate limit, malformed response; saved title | Request movies and watchlist | Helpful error without secrets; saved titles readable | Mocked failure tests |
+| AC-43 | Securely configured TMDb access | Live popular/search/details/related/ALL-genre requests | Real data or honest empty states; verified behavior/attribution | Separate live integration checklist |
 
-During the build, run Django system checks, migration checks and relevant tests. Record which tests actually ran, with counts and failures; a zero-test run is not verification. Keep screenshots and logs free of passwords, tokens and private records.
+Run Django system/migration checks and relevant tests during the build; record test counts and failures. Mocked passes do not prove live access. Screenshots/logs must not expose credentials.
 
-**Final video, December 7:** Introduce the problem and scope changes; show welcome, registration/login and popular dashboard (FR-17, FR-08, FR-01, FR-09). Demonstrate title search, recommendations, details and poster fallback (FR-10, FR-03, FR-12), then ALL-genre browsing (FR-16), Surprise Me/Try Again (FR-11), private saves/removal/persistence (FR-06), and an error case (FR-04). Finish with logout and a protected-page request. Explain the architecture/ERD and how URLs, views, TMDb, SQLite and templates support these actions. Supporting tests cover edge cases that do not fit the recording.
-
-The demo is local; hosting is not required. Video timestamps, link, screenshots, student narration and submission remain pending. Label controlled errors as simulations, and use separate real API evidence for AC-43. Do not declare the project complete while a Must requirement is unverified.
+**Final video — December 7:** Explain the problem/scope; show welcome (FR-17), registration/login/popular dashboard (FR-08, FR-01, FR-09), search/recommendations/details/posters (FR-10, FR-03, FR-12), ALL-genre browsing (FR-16), Surprise Me (FR-11), private save/remove/persistence (FR-06), an error (FR-04), then logout/protected access. Explain the diagrams and key design choices. Supporting tests cover remaining edge cases; clearly label simulated failures. The local video, timestamps/link and actual evidence remain pending; hosting is not required.
 
 ## 11. Decisions, risks, and student explanation
 
-Django keeps pages, forms, authentication and database access in one Python project. SQLite meets the course persistence requirement without another database server. TMDb avoids preparing a separate catalog or writing a recommendation algorithm, but adds an external dependency.
+Django provides pages, forms, login and database tools in one Python project. SQLite supports local persistent accounts/watchlists. TMDb avoids maintaining a catalog or custom recommendation algorithm.
 
-| Risk / Open item | Planned response or decision needed |
+| Risk / Open question | Planned response |
 |---|---|
-| TMDb access, authentication, costs, terms and attribution | Before API work, verify current [official documentation](https://developer.themoviedb.org/docs/getting-started) and [FAQ](https://developer.themoviedb.org/docs/faq), credentials, networking, request limits, image use and permitted title-snapshot storage. Add required attribution after checking the terms. Do not assume free/unrestricted access. |
-| API field formats and ALL-genre behavior | Confirm rating scale, response fields, image configuration and genre request semantics. Movie results may change or be empty; use stable fictional tests plus AC-43 live evidence. |
-| Availability and incomplete information | Use timeouts, placeholders and helpful messages. Keep saved titles visible locally; do not invent movie details. |
-| Watchlist privacy and duplicate entries | Enforce session-derived ownership, unique user/movie pairs and POST/CSRF protections; verify with two accounts. |
-| Course timeline | Complete authentication first and reserve the final window for defects/evidence. Do not restore removed features. If API access blocks completion, document it and seek a scope decision rather than silently changing sources. |
-| Runtime versions and reviews | Select compatible supported Python/Django versions during the build. Instructor feedback, Kate's review and remote GitHub diagram display remain unverified. |
+| API access, costs, licensing and attribution | Check current [TMDb documentation](https://developer.themoviedb.org/docs/getting-started) and [FAQ](https://developer.themoviedb.org/docs/faq), credentials/networking, limits, image use and permitted title storage before API work. Do not assume unrestricted/free access. |
+| Response formats, ALL-genre syntax and changing results | Verify rating scale, fields, image setup and endpoint semantics; use fictional tests plus AC-43 live evidence. |
+| Outages, missing data, privacy or duplicates | Apply the messages/placeholders and owner/unique/POST rules above; test failures and two-user access. |
+| Timeline and review | Build authentication first; exclude extra features. Choose compatible Python/Django versions during implementation. Instructor feedback, student explanation and remote diagram review remain pending. Document API blockers rather than silently changing sources. |
 
-The three rendered PNG diagrams, SVG exports and editable sources are preserved. They were previously inspected locally; this revision changes explanatory text, not the diagrams. No implementation or live API verification is claimed.
+**Student explanation remains pending:** Kate described searching by movie/genre and seeing results. As a learning guide, a request reaches a Django URL and view; the view checks login/input, calls TMDb for movies or queries SQLite for the user's saves, then a template returns HTML. Saving adds an account-linked entry, not a movie to TMDb. Explain this in your own words, including why ownership matters and what works during outages.
 
-**Student explanation — pending Kate's own wording:** Kate previously described users searching for a movie or genre and seeing results. The technical explanation below is a learning guide to review, not a statement of demonstrated understanding:
-
-A browser request reaches a Django URL and view. The view checks login and validates input. Movie discovery requests TMDb; a watchlist request uses Django's database tools to read only the current user's SQLite entries. A template turns the returned information or error into HTML for the browser. Saving a movie adds an entry linked to the signed-in account; it does not change TMDb.
-
-Before building, explain that flow in your own words, why SQLite stores watchlists rather than the movie catalog, how ownership protects saves, and what remains usable during an API outage. Registration is now consistently planned to authenticate automatically and open the dashboard.
-
-### Rubric coverage review
-
-| Professor's requirement | Where it is addressed |
-|---|---|
-| Proposal baseline, scope changes and stable IDs | Section 1; proposal remains the source of requirement definitions |
-| System context diagram | Section 2 — rendered architecture image |
-| Entities, fields, relationships, validation and deletion | Section 3 — rendered ERD and field table |
-| Pages, URLs, actions and requirement links | Section 4 |
-| Main flow, success, invalid-input and empty paths | Section 5 — rendered flowchart and notes |
-| Authentication, protected access and ownership | Section 6 |
-| External dependencies, configuration and failure behavior | Section 7; open policy checks collected in section 11 |
-| Useful outputs and business rules with examples | Section 8 |
-| Small increments with authentication first and ID links | Section 9 |
-| Acceptance checks, initial screenshots and final video | Section 10 — all 29 active criteria retained in grouped rows |
-| Decisions, risks, open questions and student explanation | Section 11; student response remains pending |
-
-This review confirms document coverage, not instructor approval or application readiness. No feature, code, test, screenshot or video was created by simplifying the design.
+**Rubric review:** Sections 1–11 retain the baseline/scope changes, architecture, data model/validation/deletion, page URLs, user flow, access rules, integration/configuration/failures, business examples, linked increments, all 29 active criteria/video plan, and decisions/risks/student checkpoint. All three image references are preserved. No application implementation or test success is claimed.
