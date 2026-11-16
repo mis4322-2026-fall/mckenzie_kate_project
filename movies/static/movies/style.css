@@ -1,0 +1,11 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f4f6fb; color: #17243a; font: 1.05rem/1.6 system-ui, sans-serif; }
+header { padding: 1.2rem max(5%, calc((100% - 960px)/2)); background: #17243a; color: white; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+header a { color: white; } .brand { font-weight: 750; text-decoration: none; }
+nav { display: flex; align-items: center; gap: 1.2rem; } nav form { margin: 0; }
+main { max-width: 760px; margin: 3rem auto; padding: 2rem; background: white; border-radius: 14px; }
+h1 { line-height: 1.2; } .eyebrow { color: #52627a; text-transform: uppercase; letter-spacing: .08em; font-size: .8rem; }
+a { color: #234eac; } button, .button { display: inline-block; background: #234eac; color: white; padding: .7rem 1.1rem; border: 0; border-radius: 6px; font: inherit; cursor: pointer; text-decoration: none; }
+label { display: block; font-weight: 600; } input { display: block; padding: .65rem; width: 100%; max-width: 26rem; border: 1px solid #738198; border-radius: 5px; font: inherit; }
+.errorlist { color: #a11925; } :focus-visible { outline: 3px solid #d38200; outline-offset: 3px; }
+section { margin-top: 2rem; border-top: 1px solid #d8deea; } @media (max-width: 600px) { main { margin: 1rem; padding: 1.4rem; } }

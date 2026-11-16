@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="eyebrow">A simpler movie night</p>
+<h1>Welcome to Movie Finder</h1>
+<p>A place to discover your next movie and keep ideas for later.</p>
+{% if user.is_authenticated %}
+<a class="button" href="{% url 'dashboard' %}">Open dashboard</a>
+{% else %}
+<a class="button" href="{% url 'login' %}">Log in</a>
+<p>Account creation is coming in the next increment. For now, use a locally created demonstration account.</p>
+{% endif %}
+{% endblock %}

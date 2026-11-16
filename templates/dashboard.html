@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | Movie Finder{% endblock %}
+{% block content %}
+<p class="eyebrow">Your movie space</p>
+<h1>Welcome, {{ user.username }}</h1>
+<p>You are signed in. This dashboard requires an authenticated account.</p>
+<section aria-labelledby="coming-next">
+<h2 id="coming-next">Coming next</h2>
+<p>Popular movies, title search, genre browsing, Surprise Me, and your private watchlist will arrive in later increments.</p>
+</section>
+{% endblock %}
