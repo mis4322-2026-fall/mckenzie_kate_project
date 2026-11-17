@@ -1,12 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Log in | Movie Finder{% endblock %}
+{% block body_class %}cinema-page login-page{% endblock %}
+{% block main_class %}cinema-main{% endblock %}
 {% block content %}
-<h1>Log in</h1>
-<p>Use your Movie Finder username and password.</p>
-<form method="post" class="account-form">
-  {% csrf_token %}
-  {{ form.as_p }}
-  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-  <button type="submit">Log in</button>
-</form>
+<section class="glass-panel" aria-labelledby="login-heading">
+  <div class="panel-emblem" aria-hidden="true">▶</div>
+  <p class="eyebrow">Your next great watch starts here</p>
+  <h1 id="login-heading">Welcome back</h1>
+  <p class="panel-description">Log in to your Movie Finder account.</p>
+  <form method="post" class="account-form">
+    {% csrf_token %}
+    {{ form.as_p }}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button class="login-button" type="submit">Log in <span aria-hidden="true">→</span></button>
+  </form>
+  <p class="panel-footnote">A world of cinema. One place to find it.</p>
+</section>
+<p class="cinema-caption">Find a story worth your evening.</p>
 {% endblock %}

@@ -1,11 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Dashboard | Movie Finder{% endblock %}
 {% block content %}
-<p class="eyebrow">Your movie space</p>
-<h1>Welcome, {{ user.username }}</h1>
-<p>You are signed in. This dashboard requires an authenticated account.</p>
-<section aria-labelledby="coming-next">
-<h2 id="coming-next">Coming next</h2>
-<p>Popular movies, title search, genre browsing, Surprise Me, and your private watchlist will arrive in later increments.</p>
+<section class="dashboard-hero" aria-labelledby="dashboard-heading">
+  <div class="hero-copy">
+    <p class="eyebrow">Movie Finder · Your personal cinema space</p>
+    <h1 id="dashboard-heading">Welcome, {{ user.username }}</h1>
+    <p class="hero-tagline">Make room for your next great movie night.</p>
+    <p class="hero-description">Your account is ready. We’re building a place to discover movies and keep the ones you want to watch, all in one space.</p>
+    <span class="account-status"><span aria-hidden="true"></span> You’re signed in</span>
+  </div>
+  <div class="hero-art" aria-hidden="true"><div class="cinema-frame"><span class="play-symbol">▶</span></div><span class="art-caption">A new story awaits</span></div>
 </section>
+<section class="upcoming-section" aria-labelledby="coming-next">
+  <div class="section-heading"><div><p class="eyebrow">The next chapter</p><h2 id="coming-next">Your discovery toolkit</h2></div><span class="section-note">Features in development</span></div>
+  <p class="section-description">Here’s what’s coming to Movie Finder. These features aren’t available yet.</p>
+  <div class="feature-grid">
+    <article class="feature-card"><div class="feature-top"><span class="feature-icon" aria-hidden="true">↗</span><span class="coming-label">Coming soon</span></div><h3>Popular movies</h3><p>Explore what’s popular and find a starting point for movie night.</p></article>
+    <article class="feature-card"><div class="feature-top"><span class="feature-icon" aria-hidden="true">⌕</span><span class="coming-label">Coming soon</span></div><h3>Title search</h3><p>Have a movie in mind? Find it by name and explore its details.</p></article>
+    <article class="feature-card"><div class="feature-top"><span class="feature-icon" aria-hidden="true">▦</span><span class="coming-label">Coming soon</span></div><h3>Browse genres</h3><p>Discover movies that match the genres you’re in the mood for.</p></article>
+    <article class="feature-card"><div class="feature-top"><span class="feature-icon" aria-hidden="true">✦</span><span class="coming-label">Coming soon</span></div><h3>Surprise Me</h3><p>Let a random movie pick bring something unexpected to your evening.</p></article>
+    <article class="feature-card"><div class="feature-top"><span class="feature-icon" aria-hidden="true">＋</span><span class="coming-label">Coming soon</span></div><h3>Your watchlist</h3><p>Keep movies you want to watch in a private list for later.</p></article>
+  </div>
+</section>
+<footer class="dashboard-footer">Movie Finder <span>Discover a story. Make an evening of it.</span></footer>
 {% endblock %}

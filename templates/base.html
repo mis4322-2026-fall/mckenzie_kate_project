@@ -4,19 +4,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070f24">
   <title>{% block title %}Movie Finder{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'movies/style.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'movies/style.css' %}?v=20261117-3">
 </head>
-<body>
-<header>
-  <a class="brand" href="{% url 'welcome' %}">Movie Finder</a>
+<body class="{% block body_class %}app-page{% endblock %}">
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="site-header">
+<div class="header-inner">
+  <a class="brand" href="{% url 'welcome' %}"><span class="brand-mark" aria-hidden="true">M<span>F</span></span>Movie Finder<span class="brand-dot" aria-hidden="true">.</span></a>
   <nav aria-label="Main navigation">
     {% if user.is_authenticated %}
       <a href="{% url 'dashboard' %}">Dashboard</a>
-      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
-    {% else %}<a href="{% url 'login' %}">Log in</a>{% endif %}
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-button" type="submit">Log Out</button></form>
+    {% else %}<a class="nav-link" href="{% url 'login' %}">Log in <span aria-hidden="true">↗</span></a>{% endif %}
   </nav>
+</div>
 </header>
-<main>{% block content %}{% endblock %}</main>
+<main id="main-content" class="{% block main_class %}app-main{% endblock %}">{% block content %}{% endblock %}</main>
 </body>
 </html>

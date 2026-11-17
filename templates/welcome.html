@@ -1,12 +1,18 @@
 {% extends "base.html" %}
+{% block body_class %}cinema-page welcome-page{% endblock %}
+{% block main_class %}cinema-main{% endblock %}
 {% block content %}
-<p class="eyebrow">A simpler movie night</p>
-<h1>Welcome to Movie Finder</h1>
-<p>A place to discover your next movie and keep ideas for later.</p>
-{% if user.is_authenticated %}
-<a class="button" href="{% url 'dashboard' %}">Open dashboard</a>
-{% else %}
-<a class="button" href="{% url 'login' %}">Log in</a>
-<p>Account creation is coming in the next increment. For now, use a locally created demonstration account.</p>
-{% endif %}
+<section class="glass-panel welcome-panel" aria-labelledby="welcome-heading">
+  <div class="panel-emblem" aria-hidden="true">▶</div>
+  <p class="eyebrow">A simpler movie night</p>
+  <h1 id="welcome-heading">Welcome to Movie Finder</h1>
+  <p class="panel-description">A place to discover your next movie and keep ideas for later.</p>
+  {% if user.is_authenticated %}
+  <a class="button" href="{% url 'dashboard' %}">Open dashboard <span aria-hidden="true">→</span></a>
+  {% else %}
+  <a class="button" href="{% url 'login' %}">Log in <span aria-hidden="true">→</span></a>
+  <p class="panel-footnote">Account creation is coming in the next increment. For now, use a locally created demonstration account.</p>
+  {% endif %}
+</section>
+<p class="cinema-caption">Find a story worth your evening.</p>
 {% endblock %}
